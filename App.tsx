@@ -66,16 +66,45 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   // We resolve the city synchronously to avoid a flash of default content (İstanbul) before the effect runs.
   // This ensures the App mounts with the Server-Injected Context immediately.
   const [currentCity, setCurrentCity] = useState<string>(() => {
-    // 1. Server Context (Priority)
+    // PRIORITY ORDER FOR CITY RESOLUTION:
+    // 1. URL Path (highest priority - user navigated directly to this URL)
+    // 2. locationId prop (WordPress server context)
+    // 3. localStorage (client persistence)
+    // 4. Default (İstanbul)
+
+    // 1. URL Path Extraction (Client-side navigation & direct links)
+    // This takes priority because if the user navigated to /hava-durumu/ankara,
+    // they expect to see Ankara weather, regardless of any other context.
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      const segments = path.split('/').filter(Boolean);
+      const citySlug = segments[segments.length - 1];
+
+      // URL pattern: /hava-durumu/{city-slug} or /{view}/{city-slug}
+      // Last segment is typically the city slug
+      if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
+        const city = fromSlug(citySlug);
+        if (city) {
+          return city;
+        }
+      }
+    }
+
+    // 2. Server Context (WordPress locationId prop)
+    // Only used when URL doesn't specify a city
     if (locationId > 0) {
       return getCityById(locationId);
     }
-    // 2. Client Side Persistence (Fallback)
+
+    // 3. Client Side Persistence (Fallback - localStorage)
     if (typeof window !== 'undefined') {
       const prefs = getUserPreferences();
-      if (prefs.lastCity) return prefs.lastCity;
+      if (prefs.lastCity) {
+        return prefs.lastCity;
+      }
     }
-    // 3. Default
+
+    // 4. Default
     return 'İstanbul';
   });
 
@@ -84,6 +113,13 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewState>({ type: 'home' });
+
+  // DEBUG: Log mount state
+  useEffect(() => {
+    console.warn('🔴 [DEBUG-MOUNT] currentCity:', currentCity);
+    console.warn('🔴 [DEBUG-MOUNT] URL path:', window.location.pathname);
+    console.warn('🔴 [DEBUG-MOUNT] Expected city from slug:', fromSlug(window.location.pathname.split('/').pop() || ''));
+  }, []);
 
   // THEME STATE INITIALIZATION (Lazy Initializer)
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -156,6 +192,17 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     if (gunParam === 'yarin' || path.includes('yarin')) setView({ type: 'tomorrow' });
     else if (gunParam === 'hafta-sonu' || path.includes('hafta-sonu')) setView({ type: 'weekend' });
 
+    // CRITICAL FIX: Extract city from URL on initial mount
+    // This ensures the correct city is loaded when navigating directly to a city URL
+    const segments = path.split('/').filter(Boolean);
+    const citySlug = segments[segments.length - 1]; // Last segment is city slug
+    console.log('[DEBUG] URL City Extraction:', { path, segments, citySlug });
+    if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
+      const city = fromSlug(citySlug);
+      console.log('[DEBUG] City resolved:', { citySlug, city });
+      if (city) setCurrentCity(city);
+    }
+
     // SPA Routing: Handle browser back/forward without full reload
     const handlePopState = () => {
       const path = window.location.pathname;
@@ -185,11 +232,22 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   }, []); // Run once on mount
 
   // Watch for locationId prop changes specifically (Dynamic Updates / Single Page Transitions if parent updates)
-  // IMPORTANT: Only depend on locationId, NOT currentCity - otherwise this will reset the city on every change!
+  // Watch for locationId prop changes (Dynamic Updates from WordPress parent)
+  // IMPORTANT: Only override city if the URL doesn't already specify one
+  // This prevents the hardcoded data-location-id from overwriting URL-based navigation
   useEffect(() => {
     if (locationId > 0) {
-      const city = getCityById(locationId);
-      setCurrentCity(city);
+      // Check if URL already specifies a city
+      const path = window.location.pathname;
+      const segments = path.split('/').filter(Boolean);
+      const citySlug = segments[segments.length - 1];
+      const urlHasCity = citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu' && fromSlug(citySlug);
+
+      // Only use locationId if URL doesn't have a valid city
+      if (!urlHasCity) {
+        const city = getCityById(locationId);
+        setCurrentCity(city);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationId]);
