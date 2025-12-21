@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+  <meta name="description"
+    content="Türkiye'nin en kapsamlı hava durumu platformu. 15 günlük tahminler, meteoroloji haritaları, tarım ve denizcilik raporları." />
+  <title>Hava Durumu | TG Dijital</title>
+
+  <!-- Performance: Preconnect to CDNs -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn-icons-png.flaticon.com">
+  <link rel="preconnect" href="https://picsum.photos">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- CRITICAL: Dark Mode "No-Flash" Script -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('tg_user_prefs');
+        var theme = 'system';
+        if (saved) {
+          theme = JSON.parse(saved).theme;
+        }
+
+        if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) { }
+    })();
+  </script>
+
+  <!-- JSON-LD Structured Data for Weather Website -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://hava-durumlari.tr/#website",
+          "url": "https://hava-durumlari.tr/",
+          "name": "Hava Durumu Türkiye",
+          "description": "Türkiye'nin en kapsamlı hava durumu platformu",
+          "publisher": {
+            "@id": "https://hava-durumlari.tr/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://hava-durumlari.tr/sehir/{search_term_string}",
+            "query-input": "required name=search_term_string"
+          },
+          "inLanguage": "tr-TR"
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://hava-durumlari.tr/#organization",
+          "name": "TG Dijital",
+          "url": "https://hava-durumlari.tr/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://hava-durumlari.tr/logo.png"
+          },
+          "sameAs": [
+            "https://twitter.com/tgdijital",
+            "https://facebook.com/tgdijital"
+          ]
+        },
+        {
+          "@type": "WebApplication",
+          "@id": "https://hava-durumlari.tr/#app",
+          "name": "Hava Durumu Türkiye",
+          "applicationCategory": "WeatherApplication",
+          "operatingSystem": "Web Browser",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "TRY"
+          },
+          "featureList": [
+            "15 günlük hava durumu tahmini",
+            "Saatlik hava durumu",
+            "UV indeksi",
+            "Hava kalitesi (AQI)",
+            "Meteoroloji radar haritaları",
+            "Yaşam tarzı indeksleri"
+          ]
+        },
+        {
+          "@type": "Service",
+          "@id": "https://hava-durumlari.tr/#service",
+          "serviceType": "Weather Forecast",
+          "provider": {
+            "@id": "https://hava-durumlari.tr/#organization"
+          },
+          "areaServed": {
+            "@type": "Country",
+            "name": "Türkiye"
+          },
+          "description": "Türkiye geneli için güncel hava durumu tahminleri, 15 günlük öngörüler, UV indeksi, hava kalitesi ve yaşam tarzı önerileri sunan ücretsiz meteoroloji hizmeti."
+        }
+      ]
+    }
+  </script>
+
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+
+  <!-- Tailwind CSS processed by Vite/PostCSS - NO CDN -->
+  <link rel="stylesheet" href="/main.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+  <!-- 
+       Server Side Injection Simulation:
+       data-location-id="34" corresponds to Istanbul (Plate Code or DB ID)
+    -->
+  <div id="weather-app" data-location-id="34"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>
