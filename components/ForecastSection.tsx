@@ -191,8 +191,25 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
       case 'drizzle': return <Icon.CloudRain size={size} className="text-blue-300" />;
       case 'storm': return <Icon.CloudLightning size={size} className="text-amber-500" />;
       case 'snow': return <Icon.CloudSnow size={size} className="text-cyan-300" />;
-      case 'fog': return <Icon.CloudFog size={size} className="text-slate-400" />; // FIXED: CloudFog instead of Wind
+      case 'fog': return <Icon.CloudFog size={size} className="text-slate-400" />;
       default: return <Icon.Cloud size={size} className="text-slate-400" />;
+    }
+  };
+
+  // Map icon names to Turkish weather descriptions
+  const getWeatherDescription = (iconName: string): string => {
+    switch (iconName) {
+      case 'sunny': return 'Güneşli';
+      case 'moon': return 'Açık (Gece)';
+      case 'cloudy': return 'Parçalı Bulutlu';
+      case 'cloudy-night': return 'Bulutlu (Gece)';
+      case 'overcast': return 'Kapalı';
+      case 'rain': return 'Yağmurlu';
+      case 'drizzle': return 'Çisenti';
+      case 'storm': return 'Fırtınalı';
+      case 'snow': return 'Karlı';
+      case 'fog': return 'Sisli';
+      default: return 'Parçalı Bulutlu';
     }
   };
 
@@ -210,22 +227,32 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
               {data.daily.map((day) => (
                 <div key={day.day} className={`group transition-colors ${expandedDay === day.day ? 'bg-blue-50/30 dark:bg-slate-700/30' : ''}`}>
                   <button onClick={() => toggleDay(day.day)} className="w-full flex items-center justify-between p-4 hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors min-h-[64px]">
-                    <div className="flex items-center w-24 flex-shrink-0">
+                    {/* Column 1: Day + Date */}
+                    <div className="flex items-center min-w-[100px]">
                       <span className={`font-medium ${day.day === 'Yarın' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-200'}`}>{day.day}</span>
                       <span className="text-xs text-slate-400 ml-1.5">{day.date}</span>
                     </div>
-                    <div className="flex items-center justify-between flex-1 px-2 sm:px-8">
-                      <div className="flex items-center justify-center">{getForecastIcon(day.icon, 24)}</div>
-                      <div className="flex items-center space-x-2 sm:space-x-4 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        <div className="flex items-center bg-blue-50/80 dark:bg-slate-700 px-2 py-1 rounded-md min-w-[50px] justify-center"><Icon.Droplets size={12} className="mr-1 text-blue-500" />{day.rainProb}%</div>
-                        <div className="flex items-center bg-slate-50/80 dark:bg-slate-700 px-2 py-1 rounded-md hidden sm:flex min-w-[70px] justify-center"><Icon.Wind size={12} className="mr-1 text-slate-400" />{day.wind.split(' ')[0]}</div>
-                      </div>
+                    {/* Column 2: Weather Icon */}
+                    <div className="flex items-center justify-center min-w-[40px]">{getForecastIcon(day.icon, 24)}</div>
+                    {/* Column 3: Description (short weather text) */}
+                    <div className="hidden md:block text-sm text-slate-500 dark:text-slate-400 min-w-[120px] text-center truncate">
+                      {day.description || getWeatherDescription(day.icon)}
                     </div>
-                    <div className="flex items-center justify-end w-20 space-x-3 flex-shrink-0">
+                    {/* Column 4: Rain Probability */}
+                    <div className="flex items-center bg-blue-50/80 dark:bg-slate-700 px-2 py-1 rounded-md min-w-[55px] justify-center text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      <Icon.Droplets size={12} className="mr-1 text-blue-500" />{day.rainProb}%
+                    </div>
+                    {/* Column 5: Wind */}
+                    <div className="hidden sm:flex items-center bg-slate-50/80 dark:bg-slate-700 px-2 py-1 rounded-md min-w-[55px] justify-center text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      <Icon.Wind size={12} className="mr-1 text-slate-400" />{day.wind.split(' ')[0]}
+                    </div>
+                    {/* Column 6: Temperatures */}
+                    <div className="flex items-center space-x-2 min-w-[70px] justify-end">
                       <span className="text-slate-800 dark:text-white font-semibold">{Math.round(day.high)}°</span>
                       <span className="text-slate-400 dark:text-slate-500 font-light">{Math.round(day.low)}°</span>
-                      <Icon.ChevronRight className={`w-4 h-4 text-slate-300 transition-transform duration-300 ${expandedDay === day.day ? 'rotate-90' : ''}`} />
                     </div>
+                    {/* Column 7: Chevron */}
+                    <Icon.ChevronRight className={`w-4 h-4 text-slate-300 transition-transform duration-300 ${expandedDay === day.day ? 'rotate-90' : ''}`} />
                   </button>
                   <div className={`grid transition-all duration-500 ease-out overflow-hidden ${expandedDay === day.day ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div className="min-h-0">

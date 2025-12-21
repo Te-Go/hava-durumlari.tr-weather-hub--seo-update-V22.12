@@ -247,6 +247,51 @@ const FAQSection: React.FC<FAQProps> = ({ faq, city }) => {
 };
 
 // ============================================================================
+// ANSWER SUMMARY BAR - Thin horizontal component for between City Rail and Hero
+// ============================================================================
+
+interface AnswerSummaryBarProps {
+    city: string;
+    summary: string;
+    comparison?: 'artıyor' | 'azalıyor' | 'benzer';
+}
+
+export const AnswerSummaryBar: React.FC<AnswerSummaryBarProps> = ({ city, summary, comparison }) => {
+    return (
+        <div className="max-w-4xl mx-auto px-4 mb-2">
+            <div className="bg-white/60 dark:bg-blue-900/40 backdrop-blur-md rounded-xl px-4 py-3 border border-slate-200/60 dark:border-blue-700/60 shadow-sm hover:shadow-md hover:bg-white/80 dark:hover:bg-blue-900/60 transition-all duration-300 cursor-default">
+                <div className="flex items-start gap-3">
+                    {/* Title + Badge */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-sm font-bold text-slate-700 dark:text-blue-200">Hava Özeti</span>
+                        {comparison && (
+                            <span className={`
+                                inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                ${comparison === 'artıyor' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : ''}
+                                ${comparison === 'azalıyor' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
+                                ${comparison === 'benzer' ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' : ''}
+                            `}>
+                                {comparison === 'artıyor' && '↑'}
+                                {comparison === 'azalıyor' && '↓'}
+                                {comparison === 'benzer' && '→'}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="w-px h-5 bg-slate-300 dark:bg-blue-600/50 flex-shrink-0" />
+
+                    {/* Summary Text */}
+                    <p className="text-sm text-slate-700 dark:text-blue-100 leading-relaxed line-clamp-2">
+                        {summary}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ============================================================================
 // TIMEFRAME SELECTOR
 // ============================================================================
 
@@ -325,6 +370,40 @@ const ForecastAccuracyBanner: React.FC<ForecastAccuracyBannerProps> = ({ comment
 };
 
 // ============================================================================
+// FORECAST METADATA BANNER (EEAT - Update Timestamp & Source)
+// ============================================================================
+
+interface ForecastMetadataBannerProps {
+    displayDate: string;
+    dateModified: string;
+}
+
+const ForecastMetadataBanner: React.FC<ForecastMetadataBannerProps> = ({ displayDate, dateModified }) => {
+    return (
+        <div
+            className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 text-xs"
+            itemScope
+            itemType="https://schema.org/WebPage"
+        >
+            <div className="flex items-center gap-4">
+                <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                    <Icon.Clock className="w-3.5 h-3.5" />
+                    <time dateTime={dateModified} itemProp="dateModified">
+                        Güncelleme: {displayDate}
+                    </time>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">
+                    Meteorolojik Model Verisi
+                </span>
+            </div>
+            <span className="text-slate-400 dark:text-slate-500 italic">
+                Tahminler kısa süreli değişiklikler gösterebilir.
+            </span>
+        </div>
+    );
+};
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -381,29 +460,19 @@ const WeatherCommentaryGrid: React.FC<WeatherCommentaryGridProps> = ({
 
     return (
         <div className={`space-y-6 ${className}`}>
-            {/* Header with Timeframe Selector */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-6 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-full" />
-                    <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">
-                        Hava Analizi
-                    </h2>
-                </div>
-
-                {showTimeframeSelector && (
+            {/* Timeframe Selector */}
+            {showTimeframeSelector && (
+                <div className="flex justify-end">
                     <TimeframeSelector active={timeframe} onChange={setTimeframe} />
-                )}
-            </div>
-
-            {/* Daily Summary */}
-            {showDailySummary && (
-                <DailySummary
-                    summary={commentary.dailySummary}
-                    city={commentary.city}
-                    timeframe={timeframe}
-                    displayDate={commentary.metadata?.displayDate}
-                />
+                </div>
             )}
+
+            {/* ============================================================ */}
+            {/* TAHMIN ÖZETI - Moved to bottom grid                          */}
+            {/* ============================================================ */}
+            {/* Note: Answer Summary is now a separate component in App.tsx  */}
+            {/* This section is intentionally empty - Tahmin Özeti moved below */}
+
 
             {/* Forecast Accuracy Banner - Only show on 'today' when we have accuracy data */}
             {timeframe === 'today' && accuracy.commentary && (
@@ -420,10 +489,85 @@ const WeatherCommentaryGrid: React.FC<WeatherCommentaryGridProps> = ({
                 ))}
             </div>
 
-            {/* FAQ Section */}
-            {showFAQ && commentary.faq.length > 0 && (
-                <FAQSection faq={commentary.faq} city={commentary.city} />
-            )}
+            {/* ============================================================ */}
+            {/* BOTTOM SECTION - FAQ + Tahmin Özeti Side by Side (50% each)  */}
+            {/* ============================================================ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Left Card: FAQ Section (50% width) */}
+                {showFAQ && commentary.faq.length > 0 && (
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-1.5 h-6 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-full" />
+                            <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">
+                                Sık Sorulan Sorular
+                            </h3>
+                        </div>
+                        <div className="space-y-2">
+                            {commentary.faq.slice(0, 3).map((item, index) => (
+                                <div key={index} className="border border-slate-100 dark:border-slate-700 rounded-lg overflow-hidden">
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50">
+                                        <span className="font-medium text-slate-700 dark:text-slate-200 text-sm block">
+                                            {item.question}
+                                        </span>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                            {item.answer}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {/* Schema.org FAQPage markup (invisible) */}
+                        <script
+                            type="application/ld+json"
+                            dangerouslySetInnerHTML={{
+                                __html: JSON.stringify({
+                                    "@context": "https://schema.org",
+                                    "@type": "FAQPage",
+                                    "mainEntity": commentary.faq.map(item => ({
+                                        "@type": "Question",
+                                        "name": item.question,
+                                        "acceptedAnswer": {
+                                            "@type": "Answer",
+                                            "text": item.answer
+                                        }
+                                    }))
+                                })
+                            }}
+                        />
+                    </div>
+                )}
+
+                {/* Right Card: Tahmin Özeti (50% width) */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-1.5 h-6 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-full" />
+                        <span className="text-base font-bold text-slate-700 dark:text-slate-200">
+                            Tahmin Özeti
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        {commentary.forecastTable.map((row) => (
+                            <div
+                                key={row.metric}
+                                className="bg-slate-50 dark:bg-slate-800/50 rounded-lg px-4 py-3"
+                            >
+                                <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
+                                    {row.metric}
+                                </span>
+                                <span className="text-base font-semibold text-slate-800 dark:text-slate-200">
+                                    {row.value}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Forecast Metadata Banner - EEAT Trust Signal */}
+            <ForecastMetadataBanner
+                displayDate={commentary.metadata.displayDate}
+                dateModified={commentary.metadata.dateModified}
+            />
         </div>
     );
 };

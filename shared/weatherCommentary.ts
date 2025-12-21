@@ -9,6 +9,7 @@
  */
 
 import { WeatherData, DailyForecast } from '../types';
+import { getCityRegion } from './cityData';
 
 // ============================================================================
 // TYPES
@@ -51,8 +52,27 @@ export interface WeatherCommentary {
         basinc: MetricCommentary;
         gun: MetricCommentary;
     };
+    answerBlock: string;     // AI-quotable 40-60 word summary (Zero-Click SEO target)
+    timeframeBlock: TimeframeBlock;  // SEO H2 section with date stamp
+    forecastTable: ForecastTableRow[];  // Structured forecast table for snippets
     dailySummary: string;
     faq: Array<{ question: string; answer: string }>;
+}
+
+// Timeframe H2 block for SEO (with date stamps)
+export interface TimeframeBlock {
+    heading: string;       // "Bugün İstanbul'da Hava Nasıl? (21 Aralık 2024)"
+    headingWithRegion: string;  // "Bugün İstanbul – Marmara Hava Durumu (21 Aralık 2024)"
+    content: string;       // 40-70 words
+    comparison?: string;   // For tomorrow: "artıyor/azalıyor/benzer"
+    dateStamp: string;     // "21 Aralık 2024"
+}
+
+// Forecast summary table row for rich snippets
+export interface ForecastTableRow {
+    metric: string;        // "En Yüksek"
+    value: string;         // "18°"
+    icon?: string;         // Optional icon identifier
 }
 
 // ============================================================================
@@ -1039,6 +1059,249 @@ const generateDailySummary = (
 };
 
 // ============================================================================
+// ANSWER BLOCK GENERATOR (Zero-Click SEO - AI Primary Target)
+// ============================================================================
+
+/**
+ * Generates a 40-60 word AI-quotable summary block.
+ * This is the primary target for AI Overview citations.
+ * 
+ * Format: "Bugün {Şehir}'de hava {durum}. Gün içinde sıcaklık {min}° ile {max}° 
+ * arasında olacak. Yağış ihtimali %{x} civarında, rüzgâr {yon} yönünden {hiz} km/sa hızla esecek."
+ */
+const generateAnswerBlock = (
+    data: WeatherData,
+    timeframe: Timeframe,
+    city: string
+): string => {
+    const condition = data.condition.toLowerCase();
+    const high = Math.round(data.high);
+    const low = Math.round(data.low);
+    const rainProb = data.rainProb;
+    const windSpeed = data.windSpeed;
+    const windDir = getWindDirectionLabel(parseFloat(data.windDirection));
+    const tomorrow = data.daily[1];
+    const weekend = data.daily.slice(5, 7);
+
+    if (timeframe === 'today') {
+        // Today: Current conditions with immediate forecast
+        let rainStatement = '';
+        if (rainProb >= 50) {
+            rainStatement = `Yağış ihtimali %${rainProb} civarında.`;
+        } else if (rainProb >= 20) {
+            rainStatement = `Düşük yağış ihtimali (%${rainProb}) bulunuyor.`;
+        } else {
+            rainStatement = 'Yağış beklenmiyor.';
+        }
+
+        return `Bugün ${city}'de hava ${condition}. Gün içinde sıcaklık ${low}° ile ${high}° arasında olacak. ${rainStatement} Rüzgâr ${windDir} yönünden ${windSpeed} km/sa hızla esecek.`;
+
+    } else if (timeframe === 'tomorrow' && tomorrow) {
+        // Tomorrow: Focus on changes from today
+        const diff = tomorrow.high - high;
+        let changeStatement = '';
+        if (diff >= 3) {
+            changeStatement = `Bugüne göre belirgin şekilde ısınıyor.`;
+        } else if (diff <= -3) {
+            changeStatement = `Bugüne göre belirgin şekilde serinliyor.`;
+        } else {
+            changeStatement = `Bugünkü sıcaklıklara benzer.`;
+        }
+
+        let rainStatement = '';
+        if (tomorrow.rainProb >= 50) {
+            rainStatement = `Yağış ihtimali %${tomorrow.rainProb}.`;
+        } else if (tomorrow.rainProb >= 20) {
+            rainStatement = `Hafif yağış olasılığı var (%${tomorrow.rainProb}).`;
+        } else {
+            rainStatement = 'Yağış beklenmiyor.';
+        }
+
+        return `Yarın ${city}'de hava ${tomorrow.condition.toLowerCase()} olacak. Sıcaklık ${tomorrow.low}° ile ${tomorrow.high}° arasında. ${changeStatement} ${rainStatement}`;
+
+    } else if (timeframe === 'weekend' && weekend.length >= 2) {
+        // Weekend: Aggregate Saturday and Sunday
+        const saturday = weekend[0];
+        const sunday = weekend[1];
+        const avgHigh = Math.round((saturday.high + sunday.high) / 2);
+        const avgLow = Math.round((saturday.low + sunday.low) / 2);
+        const maxRainProb = Math.max(saturday.rainProb, sunday.rainProb);
+
+        let rainStatement = '';
+        if (maxRainProb >= 50) {
+            rainStatement = `Yağış riski yüksek (%${maxRainProb}).`;
+        } else if (maxRainProb >= 20) {
+            rainStatement = `Hafif yağış ihtimali var.`;
+        } else {
+            rainStatement = 'Yağış beklenmiyor, dış mekan aktiviteleri için uygun.';
+        }
+
+        return `Hafta sonu ${city}'de Cumartesi ${saturday.condition.toLowerCase()}, Pazar ${sunday.condition.toLowerCase()} bekleniyor. Sıcaklıklar ${avgLow}° ile ${avgHigh}° arasında. ${rainStatement}`;
+    }
+
+    // Fallback
+    return `${city} için güncel hava durumu tahmini.`;
+};
+
+// ============================================================================
+// TIMEFRAME BLOCK GENERATOR (Competitor-Derived SEO Enhancement)
+// ============================================================================
+
+/**
+ * Generates timeframe H2 block with date stamps for SEO freshness signals.
+ * Includes city-region format for improved entity recognition.
+ */
+const generateTimeframeBlock = (
+    data: WeatherData,
+    timeframe: Timeframe,
+    city: string
+): TimeframeBlock => {
+    const now = new Date();
+    const tomorrow = data.daily[1];
+    const weekend = data.daily.slice(5, 7);
+
+    // Format date stamp (Turkish)
+    const day = now.getDate();
+    const month = TURKISH_MONTHS[now.getMonth()];
+    const year = now.getFullYear();
+    const dateStamp = `${day} ${month} ${year}`;
+
+    // Get region for entity signal
+    const region = getCityRegion(city);
+    const cityWithRegion = region ? `${city} – ${region}` : city;
+
+    let heading = '';
+    let headingWithRegion = '';
+    let content = '';
+    let comparison: string | undefined;
+
+    if (timeframe === 'today') {
+        heading = `Bugün ${city}'de Hava Nasıl? (${dateStamp})`;
+        headingWithRegion = `Bugün ${cityWithRegion} Hava Durumu (${dateStamp})`;
+
+        const rainStatement = data.rainProb >= 30
+            ? `%${data.rainProb} yağış ihtimali bulunuyor.`
+            : 'Yağış beklenmiyor.';
+
+        content = `${city}'de bugün ${data.condition.toLowerCase()} hava hakim. ` +
+            `Sıcaklık ${data.low}° ile ${data.high}° arasında değişecek. ${rainStatement} ` +
+            `Rüzgar ${getWindDirectionLabel(parseFloat(data.windDirection))} yönünden ` +
+            `${data.windSpeed} km/sa hızla esecek.`;
+
+    } else if (timeframe === 'tomorrow' && tomorrow) {
+        // Calculate tomorrow's date
+        const tomorrowDate = new Date(now);
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const tomorrowDay = tomorrowDate.getDate();
+        const tomorrowMonth = TURKISH_MONTHS[tomorrowDate.getMonth()];
+        const tomorrowDateStamp = `${tomorrowDay} ${tomorrowMonth} ${year}`;
+
+        heading = `Yarın ${city}'de Hava Nasıl Olacak? (${tomorrowDateStamp})`;
+        headingWithRegion = `Yarın ${cityWithRegion} Hava Durumu (${tomorrowDateStamp})`;
+
+        const diff = tomorrow.high - data.high;
+        if (diff >= 3) {
+            comparison = 'artıyor';
+            content = `Yarın ${city}'de sıcaklıklar belirgin şekilde yükseliyor. `;
+        } else if (diff <= -3) {
+            comparison = 'azalıyor';
+            content = `Yarın ${city}'de serinleme bekleniyor. `;
+        } else {
+            comparison = 'benzer';
+            content = `Yarın ${city}'de bugünkü hava koşulları devam edecek. `;
+        }
+
+        content += `${tomorrow.condition} bekleniyor, sıcaklık ${tomorrow.low}° ile ${tomorrow.high}° arasında. `;
+        content += tomorrow.rainProb >= 30
+            ? `%${tomorrow.rainProb} yağış ihtimali var.`
+            : 'Yağış beklenmiyor.';
+
+    } else if (timeframe === 'weekend' && weekend.length >= 2) {
+        const saturday = weekend[0];
+        const sunday = weekend[1];
+
+        // Calculate weekend dates
+        const daysUntilSaturday = (6 - now.getDay() + 7) % 7 || 7;
+        const satDate = new Date(now);
+        satDate.setDate(satDate.getDate() + daysUntilSaturday);
+        const sunDate = new Date(satDate);
+        sunDate.setDate(sunDate.getDate() + 1);
+
+        const weekendDateStamp = `${satDate.getDate()}-${sunDate.getDate()} ${TURKISH_MONTHS[satDate.getMonth()]} ${year}`;
+
+        heading = `Hafta Sonu ${city} Hava Durumu (${weekendDateStamp})`;
+        headingWithRegion = `Hafta Sonu ${cityWithRegion} Hava Durumu (${weekendDateStamp})`;
+
+        const maxRainProb = Math.max(saturday.rainProb, sunday.rainProb);
+        const avgHigh = Math.round((saturday.high + sunday.high) / 2);
+
+        content = `Hafta sonu ${city}'de Cumartesi ${saturday.condition.toLowerCase()}, ` +
+            `Pazar ${sunday.condition.toLowerCase()} bekleniyor. ` +
+            `Ortalama en yüksek sıcaklık ${avgHigh}°. `;
+        content += maxRainProb >= 30
+            ? `Yağış riski mevcut (%${maxRainProb}).`
+            : 'Dış mekan aktiviteleri için uygun koşullar bekleniyor.';
+    }
+
+    return {
+        heading: heading || `${city} Hava Durumu (${dateStamp})`,
+        headingWithRegion: headingWithRegion || `${cityWithRegion} Hava Durumu (${dateStamp})`,
+        content: content || `${city} için hava durumu tahmini.`,
+        comparison,
+        dateStamp
+    };
+};
+
+// ============================================================================
+// FORECAST TABLE GENERATOR (Rich Snippet Opportunity)
+// ============================================================================
+
+/**
+ * Generates structured forecast table for rich snippet opportunities.
+ * Competitors rank well with visible tables.
+ */
+const generateForecastTable = (
+    data: WeatherData,
+    timeframe: Timeframe
+): ForecastTableRow[] => {
+    const tomorrow = data.daily[1];
+    const weekend = data.daily.slice(5, 7);
+
+    if (timeframe === 'today') {
+        return [
+            { metric: 'En Yüksek', value: `${data.high}°`, icon: 'thermometer' },
+            { metric: 'En Düşük', value: `${data.low}°`, icon: 'thermometer' },
+            { metric: 'Yağış İhtimali', value: `%${data.rainProb}`, icon: 'cloud-rain' },
+            { metric: 'Rüzgâr', value: `${getWindDirectionLabel(parseFloat(data.windDirection))} ${data.windSpeed} km/sa`, icon: 'wind' },
+            { metric: 'Nem', value: `%${data.humidity}`, icon: 'droplets' },
+            { metric: 'UV İndeksi', value: `${data.uvIndex}`, icon: 'sun' },
+        ];
+    } else if (timeframe === 'tomorrow' && tomorrow) {
+        return [
+            { metric: 'En Yüksek', value: `${tomorrow.high}°`, icon: 'thermometer' },
+            { metric: 'En Düşük', value: `${tomorrow.low}°`, icon: 'thermometer' },
+            { metric: 'Yağış İhtimali', value: `%${tomorrow.rainProb}`, icon: 'cloud-rain' },
+            { metric: 'Hava Durumu', value: tomorrow.condition, icon: 'cloud' },
+        ];
+    } else if (timeframe === 'weekend' && weekend.length >= 2) {
+        const saturday = weekend[0];
+        const sunday = weekend[1];
+        const avgHigh = Math.round((saturday.high + sunday.high) / 2);
+        const avgLow = Math.round((saturday.low + sunday.low) / 2);
+        const maxRainProb = Math.max(saturday.rainProb, sunday.rainProb);
+
+        return [
+            { metric: 'Cumartesi', value: `${saturday.high}°/${saturday.low}° - ${saturday.condition}`, icon: 'calendar' },
+            { metric: 'Pazar', value: `${sunday.high}°/${sunday.low}° - ${sunday.condition}`, icon: 'calendar' },
+            { metric: 'Ortalama Sıcaklık', value: `${avgHigh}°/${avgLow}°`, icon: 'thermometer' },
+            { metric: 'Maks. Yağış İhtimali', value: `%${maxRainProb}`, icon: 'cloud-rain' },
+        ];
+    }
+
+    return [];
+};
+
+// ============================================================================
 // FAQ GENERATOR
 // ============================================================================
 
@@ -1235,6 +1498,9 @@ export const generateWeatherCommentary = (
             basinc: generateBasincCommentary(data, timeframe, city),
             gun: generateGunCommentary(data, timeframe, city)
         },
+        answerBlock: generateAnswerBlock(data, timeframe, city),
+        timeframeBlock: generateTimeframeBlock(data, timeframe, city),
+        forecastTable: generateForecastTable(data, timeframe),
         dailySummary: generateDailySummary(data, timeframe, city),
         faq: generateFAQ(data, timeframe, city)
     };

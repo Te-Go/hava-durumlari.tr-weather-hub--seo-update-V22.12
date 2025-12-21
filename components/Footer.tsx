@@ -45,7 +45,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <h4 className="text-white font-bold mb-4">Keşfet</h4>
           <ul className="space-y-2">
             <li><button onClick={() => onNavigate('cities')} className="text-blue-400 hover:text-white font-semibold">Tüm Şehirler →</button></li>
-            {REGULAR_CITIES.slice(0, 15).map((city) => (
+            {REGULAR_CITIES.slice(0, 8).map((city) => (
               <li key={city}>
                 <a
                   href={`/hava-durumu/${toSlug(city)}`}
@@ -55,8 +55,8 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </a>
               </li>
             ))}
-            {REGULAR_CITIES.length > 15 && (
-              <li><span className="opacity-50 text-[10px]">+ {REGULAR_CITIES.length - 15} şehir daha</span></li>
+            {REGULAR_CITIES.length > 8 && (
+              <li><span className="opacity-50 text-[10px]">+ {REGULAR_CITIES.length - 8} şehir daha</span></li>
             )}
           </ul>
         </div>

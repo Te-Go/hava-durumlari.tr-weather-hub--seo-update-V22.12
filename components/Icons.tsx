@@ -4,7 +4,7 @@ import {
   Search, MapPin, ChevronRight, ChevronLeft, ChevronDown, Menu, Umbrella, Eye, ArrowUp, ArrowDown, Moon,
   Flame, Bike, Fish, Sprout,
   Cloud, CloudSnow, CloudLightning, AlertTriangle, CloudFog, Snowflake,
-  Gauge, Sunrise, FileText, Info, Clock
+  Gauge, Sunrise, FileText, Info, Clock, Calendar
 } from 'lucide-react';
 
 export const Icon = {
@@ -39,7 +39,8 @@ export const Icon = {
   Sunrise,
   FileText,
   Info,
-  Clock
+  Clock,
+  Calendar
 };
 
 // --- PREMIUM 3D SVG ENGINE (ROBUST & ANIMATED) ---

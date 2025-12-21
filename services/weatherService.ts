@@ -595,20 +595,20 @@ export const transformToTomorrow = (data: WeatherData): WeatherData => {
   const tomorrowDaily = data.daily[1];
   if (!tomorrowDaily) return data;
 
-  // Get tomorrow's hourly data (hours 24-48 from now)
+  // Get tomorrow's hourly data starting at 0:00 (midnight)
+  // Hours 24-48 represent tomorrow's full day from midnight
   const rawTomorrowHourly = data.hourly.length >= 48 ? data.hourly.slice(24, 48) : data.hourly;
 
-  // Find the index of 7:00 AM in tomorrow's hourly data
+  // Find the index of 0:00 (midnight) in tomorrow's hourly data
   const startIndex = rawTomorrowHourly.findIndex(h => {
     const hour = parseInt(h.time.split(':')[0], 10);
-    return hour === 7;
+    return hour === 0;
   });
 
-  // If 7:00 is found, start from there; otherwise use the first available hour
-  // Slice 12 hours for the trend display
+  // Start from midnight if found, otherwise use all available data
   const tomorrowHourly = startIndex !== -1
-    ? rawTomorrowHourly.slice(startIndex, startIndex + 12)
-    : rawTomorrowHourly.slice(0, 12);
+    ? rawTomorrowHourly.slice(startIndex)
+    : rawTomorrowHourly;
 
   return {
     ...data,
@@ -632,23 +632,17 @@ export const getTomorrowDashboardData = (data: WeatherData): WeatherData => {
 export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
   // Find Saturday and Sunday in the daily forecast
   const weekendDays = data.daily.filter((day) => {
-    // Parse the date string to get the day of week
-    // day.date format is like "14 Ara" (14 Dec in Turkish)
-    // We need to find the actual date - use the day.day field which has weekday names
     const dayName = day.day.toLowerCase();
-    // Turkish weekday abbreviations: Pzt, Sal, Çar, Per, Cum, Cmt, Paz
-    // Also handle "Bugün" and "Yarın" by checking the date
     return dayName === 'cmt' || dayName === 'paz' ||
       dayName === 'cumartesi' || dayName === 'pazar';
   });
 
-  // If no weekend days found in forecast, return first 2 days as fallback
-  if (weekendDays.length === 0) {
-    // Try to find next weekend by checking dates
-    const today = new Date();
-    const daysUntilSaturday = (6 - today.getDay() + 7) % 7 || 7;
+  // Calculate days until Saturday for hourly data
+  const today = new Date();
+  const daysUntilSaturday = (6 - today.getDay() + 7) % 7 || 7;
 
-    // Get Saturday and Sunday from daily array (they should be at index daysUntilSaturday and daysUntilSaturday+1)
+  // If no weekend days found by name, use index calculation
+  if (weekendDays.length === 0) {
     const saturdayIndex = daysUntilSaturday;
     const sundayIndex = daysUntilSaturday + 1;
 
@@ -656,15 +650,18 @@ export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
     if (data.daily[sundayIndex]) weekendDays.push(data.daily[sundayIndex]);
   }
 
-  // If still no weekend days, just return original data
   if (weekendDays.length === 0) return data;
 
-  // Calculate average/best conditions for weekend hero display
+  // Calculate hourly data starting from Saturday 0:00
+  // Each day has 24 hours, so Saturday starts at hour index (daysUntilSaturday * 24)
+  const saturdayStartHour = daysUntilSaturday * 24;
+  const weekendHourly = data.hourly.slice(saturdayStartHour, saturdayStartHour + 24);
+
+  // Calculate average conditions for weekend
   const avgHigh = Math.round(weekendDays.reduce((sum, d) => sum + d.high, 0) / weekendDays.length);
   const avgLow = Math.round(weekendDays.reduce((sum, d) => sum + d.low, 0) / weekendDays.length);
   const maxRainProb = Math.max(...weekendDays.map(d => d.rainProb));
 
-  // Use Saturday's icon as the main icon (first weekend day)
   const mainIcon = weekendDays[0].icon;
   const mainCondition = weekendDays[0].condition;
 
@@ -677,7 +674,7 @@ export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
     high: avgHigh,
     low: avgLow,
     rainProb: maxRainProb,
-    // Filter daily to only show weekend days
+    hourly: weekendHourly.length > 0 ? weekendHourly : data.hourly.slice(0, 24),
     daily: weekendDays.length >= 2 ? weekendDays : data.daily.slice(0, 7),
   };
 };

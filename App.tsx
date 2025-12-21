@@ -5,7 +5,8 @@ import { WeatherData, MarketTicker, NewsItem } from './types';
 import TopBar from './components/TopBar';
 import Navigation from './components/Navigation';
 import HeroDashboard from './components/HeroDashboard';
-import WeatherCommentaryGrid from './components/WeatherCommentaryGrid';
+import WeatherCommentaryGrid, { AnswerSummaryBar } from './components/WeatherCommentaryGrid';
+import { generateWeatherCommentary, Timeframe } from './shared/weatherCommentary';
 import ForecastSection from './components/ForecastSection';
 import RadarNews from './components/RadarNews';
 import HistoricalChart from './components/HistoricalChart';
@@ -351,6 +352,18 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
               onToggleTheme={toggleTheme}
               activeView={view.type}
             />
+            {/* Answer Summary Bar - Between City Rail and Hero */}
+            {displayData && (() => {
+              const timeframe: Timeframe = view.type === 'tomorrow' ? 'tomorrow' : (view.type === 'weekend' ? 'weekend' : 'today');
+              const commentary = generateWeatherCommentary(displayData, timeframe);
+              return (
+                <AnswerSummaryBar
+                  city={commentary.city}
+                  summary={commentary.answerBlock}
+                  comparison={commentary.timeframeBlock.comparison}
+                />
+              );
+            })()}
             {loading || !displayData ? (
               <div className="flex items-center justify-center min-h-[50vh]"><div className="w-16 h-16 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div></div>
             ) : (

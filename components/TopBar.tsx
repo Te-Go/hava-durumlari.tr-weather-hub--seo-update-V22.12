@@ -27,26 +27,26 @@ const TopBar: React.FC<TopBarProps> = ({ tickers, currentTemp, onHomeClick, posi
 
   return (
     <div className={`bg-deep-navy text-white py-2 px-4 overflow-x-auto no-scrollbar w-full transition-colors duration-500 ${positionClass}`}>
-      <div className="flex items-center space-x-4 md:space-x-6 mx-auto max-w-4xl justify-between md:justify-start">
+      <div className="flex items-center justify-evenly w-full">
         {/* Left Section: Logo & Toggle */}
         <div className="flex items-center space-x-3">
           {/* Hava Logo Button */}
           <button
             onClick={onHomeClick}
-            className={pillClass}
+            className="flex items-center text-xs font-medium bg-white/10 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm whitespace-nowrap transition-colors hover:bg-white/20 active:scale-95 overflow-hidden"
           >
             <img
               src={weatherLogo}
               alt="Hava Logo"
-              className="w-5 h-5 object-contain"
+              className="w-5 h-5 object-contain flex-shrink-0"
               onError={(e) => {
                 // Fallback to official CDN if local file not found
                 e.currentTarget.src = "https://cdn-icons-png.flaticon.com/512/1163/1163661.png";
               }}
             />
-            <span className="text-white">Hava</span>
+            <span className="text-white ml-2">Hava</span>
             {currentTemp !== undefined && (
-              <span className="text-xs font-light text-white ml-1 border-l border-white/20 pl-2">
+              <span className="text-xs font-light text-white/80 border-l border-white/20 pl-2 ml-2">
                 {Math.round(currentTemp)}°
               </span>
             )}
