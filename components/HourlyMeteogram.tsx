@@ -161,9 +161,9 @@ const HourlyMeteogram: React.FC<HourlyMeteogramProps> = ({ hourlyData, sunrise, 
                         return (
                             <div
                                 key={index}
-                                className={`snap-start flex-shrink-0 flex flex-col items-center pt-4 pb-2 relative z-10 transition-colors ${hour.isDay
-                                    ? 'bg-gradient-to-b from-amber-50/30 via-transparent to-transparent dark:from-slate-700/20'
-                                    : 'bg-gradient-to-b from-indigo-900/10 via-transparent to-transparent dark:from-slate-900/40'
+                                className={`snap-start flex-shrink-0 flex flex-col items-center pt-4 pb-2 relative z-10 transition-all hover:scale-105 ${hour.isDay
+                                    ? 'bg-gradient-to-b from-amber-100/60 via-amber-50/30 to-transparent dark:from-slate-700/20'
+                                    : 'bg-gradient-to-b from-indigo-100/50 via-indigo-50/30 to-transparent dark:from-slate-900/40'
                                     }`}
                                 style={{ width: `${cardWidth}px` }}
                             >

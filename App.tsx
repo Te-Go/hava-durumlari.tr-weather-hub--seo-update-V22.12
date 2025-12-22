@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, ErrorInfo, ReactNode } from 'react';
-import { getWeatherData, getMarketData, toSlug, fromSlug, fetchLiveArticles, trackEvent, getCityFromCoords, getTomorrowDashboardData, getWeekendDashboardData, initAnalytics, initAds, getUserPreferences, saveUserPreferences, getCityById } from './services/weatherService';
+import { getWeatherData, getWeatherDataByCoords, getMarketData, toSlug, fromSlug, fetchLiveArticles, trackEvent, getCityFromCoords, getTomorrowDashboardData, getWeekendDashboardData, initAnalytics, initAds, getUserPreferences, saveUserPreferences, getCityById } from './services/weatherService';
 import { WeatherData, MarketTicker, NewsItem } from './types';
 import TopBar from './components/TopBar';
 import Navigation from './components/Navigation';
@@ -18,6 +18,7 @@ import CookieBanner from './components/CookieBanner';
 import HorizontalAd from './components/HorizontalAd';
 // DesktopSidebarLeft removed from layout
 import DesktopSidebarRight from './components/DesktopSidebarRight';
+import NewsSection from './components/NewsSection';
 
 type ViewState =
   | { type: 'home' }
@@ -161,14 +162,52 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   }, []);
 
   const handleUseLocation = () => {
-    if (!navigator.geolocation) { alert("Tarayıcı desteklemiyor."); return; }
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      try {
-        const city = await getCityFromCoords(pos.coords.latitude, pos.coords.longitude);
-        if (city) handleCityChange(city);
-      }
-      catch (e) { alert("Konum bulunamadı."); }
-    });
+    if (!navigator.geolocation) {
+      alert("Tarayıcı konum özelliğini desteklemiyor.");
+      return;
+    }
+
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+
+          // 1. Get locality name from coordinates (for display & URL)
+          const localityName = await getCityFromCoords(latitude, longitude);
+
+          // 2. Fetch weather directly by coordinates (most accurate)
+          const weatherData = await getWeatherDataByCoords(latitude, longitude, localityName);
+
+          // 3. Update state
+          setCurrentCity(localityName);
+          setWeatherData(weatherData);
+
+          // 4. Update URL (SEO-friendly)
+          const slug = toSlug(localityName);
+          window.history.pushState({ city: localityName }, '', `/hava-durumu/${slug}`);
+
+          // 5. Save preference & track
+          saveUserPreferences({ lastCity: localityName });
+          trackEvent('use_location', 'gps', localityName);
+
+        } catch (e) {
+          console.error('GPS location error:', e);
+          alert("Konum belirlenemedi. Lütfen tekrar deneyin.");
+        } finally {
+          setLoading(false);
+        }
+      },
+      (error) => {
+        setLoading(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          alert("Konum izni reddedildi. Lütfen tarayıcı ayarlarından konum iznini açın.");
+        } else {
+          alert("Konum alınamadı. Lütfen tekrar deneyin.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   // GLOBAL DATA & VIEW ROUTING
@@ -440,17 +479,26 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                   showDailySummary={true}
                   className="mb-8"
                 />
-                <LifestyleRail data={displayData} />
+                {/* Side-by-side: Lifestyle (left 50%) + Radar (right 50%) on desktop */}
+                <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6">
+                  <div className="w-full md:w-1/2">
+                    <LifestyleRail data={displayData} />
+                  </div>
+                  <div className="w-full md:w-1/2">
+                    <RadarNews
+                      articles={articles}
+                      weatherData={displayData}
+                      compact={true}
+                    />
+                  </div>
+                </div>
 
                 {/* Horizontal Ad Unit */}
                 <HorizontalAd />
 
                 <ForecastSection data={displayData} focusTomorrow={view.type === 'tomorrow'} />
-                <RadarNews
-                  articles={articles}
-                  weatherData={displayData}
-                />
                 <HistoricalChart weatherData={displayData} />
+                <NewsSection articles={articles} />
                 <AdGrid />
               </div>
             )}

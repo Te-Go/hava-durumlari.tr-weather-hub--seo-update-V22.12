@@ -62,17 +62,40 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ weatherData }) => {
 
         // Sample data to avoid too many points (every 3rd day)
         const sampled = historicalData.last12Months.filter((_, i) => i % 3 === 0);
+        const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
-        return sampled.map(day => {
+        // PASS 1: Collect all indices for each year-month
+        const monthIndexRanges: { [yearMonth: string]: { indices: number[], month: string } } = {};
+        sampled.forEach((day, index) => {
+            const date = new Date(day.date);
+            const yearMonth = `${date.getFullYear()}-${date.getMonth()}`;
+            if (!monthIndexRanges[yearMonth]) {
+                monthIndexRanges[yearMonth] = { indices: [], month: monthNames[date.getMonth()] };
+            }
+            monthIndexRanges[yearMonth].indices.push(index);
+        });
+
+        // Calculate middle index for each month
+        const middleIndices = new Set<number>();
+        Object.values(monthIndexRanges).forEach(({ indices }) => {
+            const middleIdx = indices[Math.floor(indices.length / 2)];
+            middleIndices.add(middleIdx);
+        });
+
+        // PASS 2: Build chart data with isMiddleOfMonth flag
+        return sampled.map((day, index) => {
             const doy = getDayOfYear(day.date);
             const avg = avgLookup[doy] || { avgHigh: 15, avgLow: 5, avgPrecip: 1 };
             const date = new Date(day.date);
-            const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+            const monthIndex = date.getMonth();
 
             return {
+                index,
                 date: day.date,
-                label: `${date.getDate()} ${monthNames[date.getMonth()]}`,
-                month: monthNames[date.getMonth()],
+                label: `${date.getDate()} ${monthNames[monthIndex]}`,
+                month: monthNames[monthIndex],
+                monthIndex,
+                isMiddleOfMonth: middleIndices.has(index),
                 high: day.high,
                 low: day.low,
                 precip: day.precip,
@@ -184,11 +207,15 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ weatherData }) => {
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.3} />
                             <XAxis
-                                dataKey="month"
+                                dataKey="index"
                                 tick={{ fontSize: 11 }}
                                 tickLine={false}
                                 axisLine={false}
-                                interval="preserveStartEnd"
+                                tickFormatter={(value) => {
+                                    const item = chartData[value];
+                                    return item?.isMiddleOfMonth ? item.month : '';
+                                }}
+                                interval={0}
                             />
                             <YAxis
                                 tick={{ fontSize: 11 }}
@@ -265,11 +292,15 @@ const HistoricalChart: React.FC<HistoricalChartProps> = ({ weatherData }) => {
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.3} />
                             <XAxis
-                                dataKey="month"
+                                dataKey="index"
                                 tick={{ fontSize: 11 }}
                                 tickLine={false}
                                 axisLine={false}
-                                interval="preserveStartEnd"
+                                tickFormatter={(value) => {
+                                    const item = chartData[value];
+                                    return item?.isMiddleOfMonth ? item.month : '';
+                                }}
+                                interval={0}
                             />
                             <YAxis
                                 tick={{ fontSize: 11 }}

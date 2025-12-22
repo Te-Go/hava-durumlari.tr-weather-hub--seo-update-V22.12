@@ -186,14 +186,60 @@ const fetchGeocoding = async (city: string) => {
   return null;
 };
 
+// --- REVERSE GEOCODING (Enhanced with fallbacks) ---
+// Returns the best available locality name for given coordinates
 export const getCityFromCoords = async (lat: number, lon: number): Promise<string> => {
   try {
     const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=tr`);
     const data = await res.json();
-    return data.city || data.locality || "Bilinmiyor";
-  } catch (e) { console.warn("Fallback Reverse Geo failed", e); }
-  return "Bilinmiyor";
+
+    // Cascading fallback chain for best locality name
+    // Priority: locality (most specific) → city → principalSubdivision (province)
+    const localityName = data.locality
+      || data.city
+      || data.principalSubdivision
+      || null;
+
+    if (localityName) {
+      return localityName;
+    }
+
+    // If BigDataCloud fails, try Open-Meteo geocoding as secondary fallback
+    const geoData = await fetchGeocoding(`${lat},${lon}`);
+    if (geoData?.name) {
+      return geoData.name;
+    }
+  } catch (e) {
+    console.warn("Reverse geocoding failed", e);
+  }
+
+  // Last resort: Return coordinate display
+  return `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`;
 };
+
+// --- COORDINATE-BASED WEATHER FETCHING ---
+// Fetches weather directly by coordinates (most accurate)
+// displayCity is used for the WeatherData.city field for display purposes
+export const getWeatherDataByCoords = async (
+  lat: number,
+  lon: number,
+  displayCity: string
+): Promise<WeatherData> => {
+  try {
+    // Use coordinates directly - no geocoding needed
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&forecast_hours=168&timezone=auto`;
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Open-Meteo API Failed');
+    const data = await response.json();
+
+    return mapOpenMeteoToModel(displayCity, data);
+  } catch (e) {
+    console.warn("Coordinate weather fetch failed, using mock data", e);
+    return getMockWeatherData(displayCity);
+  }
+};
+
 
 // --- LIFESTYLE LOGIC ---
 const generateSmartPhrase = (temp: number, conditionCode: number, wind: number, uv: number): string => {
@@ -425,7 +471,8 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
   const currentRainProb = hourly.precipitation_probability[validIndex] || 0;
 
   const hourlyData: HourlyForecast[] = [];
-  for (let i = validIndex; i < validIndex + 48 && i < hourly.time.length; i++) {
+  // Capture up to 168 hours (7 days) for Weekend mode support
+  for (let i = validIndex; i < validIndex + 168 && i < hourly.time.length; i++) {
     const timeStr = hourly.time[i];
     const hTime = timeStr.split('T')[1].substring(0, 5);
     const code = hourly.weather_code[i];
@@ -579,8 +626,8 @@ export const getWeatherData = async (city: string): Promise<WeatherData> => {
   }
 
   try {
-    // Explicitly request 15 days + Added apparent_temperature_max, uv_index_max, and cloud_cover
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&timezone=auto`;
+    // Explicitly request 15 days + 168 hours (7 days) for weekend hourly data
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&forecast_hours=168&timezone=auto`;
     const response = await fetch(url);
     if (!response.ok) throw new Error('Open-Meteo API Failed');
     const data = await response.json();
@@ -595,20 +642,35 @@ export const transformToTomorrow = (data: WeatherData): WeatherData => {
   const tomorrowDaily = data.daily[1];
   if (!tomorrowDaily) return data;
 
-  // Get tomorrow's hourly data starting at 0:00 (midnight)
-  // Hours 24-48 represent tomorrow's full day from midnight
-  const rawTomorrowHourly = data.hourly.length >= 48 ? data.hourly.slice(24, 48) : data.hourly;
+  // Find tomorrow's midnight (00:00) in the hourly data
+  // Hourly data starts from current hour, so we need to find the next 00:00
+  let midnightIndex = -1;
+  let foundFirstMidnight = false;
 
-  // Find the index of 0:00 (midnight) in tomorrow's hourly data
-  const startIndex = rawTomorrowHourly.findIndex(h => {
-    const hour = parseInt(h.time.split(':')[0], 10);
-    return hour === 0;
-  });
+  for (let i = 0; i < data.hourly.length; i++) {
+    const hour = parseInt(data.hourly[i].time.split(':')[0], 10);
+    if (hour === 0) {
+      if (!foundFirstMidnight) {
+        // This is today's midnight (if current time is before midnight) or tomorrow's
+        // We need the NEXT midnight after current time
+        foundFirstMidnight = true;
+        midnightIndex = i;
+      } else {
+        // This is tomorrow's midnight
+        midnightIndex = i;
+        break;
+      }
+    }
+  }
 
-  // Start from midnight if found, otherwise use all available data
-  const tomorrowHourly = startIndex !== -1
-    ? rawTomorrowHourly.slice(startIndex)
-    : rawTomorrowHourly;
+  // If we're already past midnight today, the first 00:00 we find is tomorrow's
+  // If midnightIndex is 0, we're at midnight now, so tomorrow is at index 24
+  if (midnightIndex <= 0) {
+    midnightIndex = 24; // Fallback: assume tomorrow starts 24 hours from now
+  }
+
+  // Get 24 hours starting from tomorrow's midnight
+  const tomorrowHourly = data.hourly.slice(midnightIndex, midnightIndex + 24);
 
   return {
     ...data,
@@ -637,9 +699,11 @@ export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
       dayName === 'cumartesi' || dayName === 'pazar';
   });
 
-  // Calculate days until Saturday for hourly data
+  // Calculate days until Saturday
   const today = new Date();
-  const daysUntilSaturday = (6 - today.getDay() + 7) % 7 || 7;
+  const currentDay = today.getDay(); // 0=Sunday, 6=Saturday
+  let daysUntilSaturday = (6 - currentDay + 7) % 7;
+  if (daysUntilSaturday === 0) daysUntilSaturday = 0; // Today is Saturday
 
   // If no weekend days found by name, use index calculation
   if (weekendDays.length === 0) {
@@ -652,10 +716,33 @@ export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
 
   if (weekendDays.length === 0) return data;
 
-  // Calculate hourly data starting from Saturday 0:00
-  // Each day has 24 hours, so Saturday starts at hour index (daysUntilSaturday * 24)
-  const saturdayStartHour = daysUntilSaturday * 24;
-  const weekendHourly = data.hourly.slice(saturdayStartHour, saturdayStartHour + 24);
+  // Find Saturday's midnight (00:00) by counting midnights in the hourly data
+  // Each 00:00 marks the start of a new day
+  let midnightCount = 0;
+  let saturdayMidnightIndex = -1;
+
+  for (let i = 0; i < data.hourly.length; i++) {
+    const hour = parseInt(data.hourly[i].time.split(':')[0], 10);
+    if (hour === 0) {
+      midnightCount++;
+      // We need to find the (daysUntilSaturday + 1)th midnight
+      // +1 because the first midnight is tomorrow (day 1), not today
+      if (midnightCount === daysUntilSaturday + 1) {
+        saturdayMidnightIndex = i;
+        break;
+      }
+    }
+  }
+
+  // Fallback: if we couldn't find Saturday's midnight
+  if (saturdayMidnightIndex === -1) {
+    // Use index-based calculation: each day is 24 hours from current hour
+    const hoursUntilSaturdayMidnight = (daysUntilSaturday * 24) - today.getHours();
+    saturdayMidnightIndex = Math.max(0, hoursUntilSaturdayMidnight);
+  }
+
+  // Get 48 hours: Saturday 00:00 to Sunday 23:00
+  const weekendHourly = data.hourly.slice(saturdayMidnightIndex, saturdayMidnightIndex + 48);
 
   // Calculate average conditions for weekend
   const avgHigh = Math.round(weekendDays.reduce((sum, d) => sum + d.high, 0) / weekendDays.length);
@@ -674,7 +761,7 @@ export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
     high: avgHigh,
     low: avgLow,
     rainProb: maxRainProb,
-    hourly: weekendHourly.length > 0 ? weekendHourly : data.hourly.slice(0, 24),
+    hourly: weekendHourly.length > 0 ? weekendHourly : data.hourly.slice(0, 48),
     daily: weekendDays.length >= 2 ? weekendDays : data.daily.slice(0, 7),
   };
 };

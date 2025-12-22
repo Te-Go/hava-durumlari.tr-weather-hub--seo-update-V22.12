@@ -45,7 +45,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <h4 className="text-white font-bold mb-4">Keşfet</h4>
           <ul className="space-y-2">
             <li><button onClick={() => onNavigate('cities')} className="text-blue-400 hover:text-white font-semibold">Tüm Şehirler →</button></li>
-            {REGULAR_CITIES.slice(0, 8).map((city) => (
+            {REGULAR_CITIES.slice(0, 5).map((city) => (
               <li key={city}>
                 <a
                   href={`/hava-durumu/${toSlug(city)}`}
@@ -55,8 +55,8 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </a>
               </li>
             ))}
-            {REGULAR_CITIES.length > 8 && (
-              <li><span className="opacity-50 text-[10px]">+ {REGULAR_CITIES.length - 8} şehir daha</span></li>
+            {REGULAR_CITIES.length > 5 && (
+              <li><span className="opacity-50 text-[10px]">+ {REGULAR_CITIES.length - 5} şehir daha</span></li>
             )}
           </ul>
         </div>
@@ -72,16 +72,8 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <li><a href="/yasal/kunye" className="hover:text-white transition-colors">Künye</a></li>
           </ul>
 
-          <div className="mt-8">
-            <h4 className="text-white font-bold mb-4">Bizi Takip Edin</h4>
-            <div className="flex space-x-4">
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer">X</div>
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer">Fb</div>
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer">In</div>
-            </div>
-            <div className="mt-8 text-[10px] opacity-40">
-              © 2025 TG Dijital. All rights reserved.
-            </div>
+          <div className="mt-8 text-[10px] opacity-40">
+            © 2025 TG Dijital. All rights reserved.
           </div>
         </div>
       </div>

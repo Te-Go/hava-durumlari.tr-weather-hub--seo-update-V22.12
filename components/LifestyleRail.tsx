@@ -36,63 +36,61 @@ const LifestyleRail: React.FC<LifestyleRailProps> = ({ data }) => {
   };
 
   return (
-    <div className="mb-6">
-      <GlassCard className="flex flex-col relative" noPadding>
-        {/* Compact Header */}
-        <div className="px-4 py-2 border-b border-glass-border dark:border-dark-border">
-          <h3 className="font-semibold text-slate-700 dark:text-slate-200 flex items-center text-sm">
-            <span className="text-lg mr-2">🧬</span> Günlük Yaşam İndeksi
-          </h3>
-        </div>
+    <GlassCard className="flex flex-col relative h-full" noPadding>
+      {/* Compact Header */}
+      <div className="px-3 py-2 border-b border-glass-border dark:border-dark-border">
+        <h3 className="font-semibold text-slate-700 dark:text-slate-200 flex items-center text-sm">
+          <span className="text-base mr-1.5">🧬</span> Günlük Yaşam
+        </h3>
+      </div>
 
-        {/* 
-            LAYOUT LOGIC FIX:
-            Mobile (< md): Flex + Overflow (Scrollable Rail)
-            Desktop (>= md): Grid (4 Columns x 2 Rows = 8 items, Perfectly Centered)
-            Added gap-4 for better spacing in grid mode.
-         */}
-        <div
-          ref={scrollRef}
-          className="
-             w-full p-3
-             flex overflow-x-auto gap-3 snap-x snap-mandatory touch-pan-x no-scrollbar 
-             md:grid md:grid-cols-3 md:gap-4 md:overflow-visible
-           "
-        >
-          {indexes.map((idx) => (
-            <div
-              key={idx.id}
-              className="
-                   flex-shrink-0 w-[130px] md:w-auto h-[110px] 
-                   bg-white/40 dark:bg-slate-700/40 
-                   border border-white/30 dark:border-white/5 rounded-xl 
-                   p-2 flex flex-col items-center justify-center text-center space-y-1 
-                   hover:bg-white/60 dark:hover:bg-slate-600 transition-colors 
-                   snap-start
-                 "
-            >
-              <div className="p-1.5 bg-white/50 dark:bg-slate-800 rounded-full shadow-sm mb-0.5">
-                {getIcon(idx.icon)}
-              </div>
-
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 leading-tight">
-                {idx.name}
-              </span>
-
-              <div className="flex items-center justify-center space-x-1.5 bg-white/30 dark:bg-black/20 px-2 py-0.5 rounded-full mt-1">
-                <span className={`w-1.5 h-1.5 rounded-full ${getStatusColor(idx.status)}`}></span>
-                <span className={`text-[10px] font-bold uppercase ${idx.status === 'good' ? 'text-green-700 dark:text-emerald-300/90' :
-                  (idx.status === 'moderate' ? 'text-orange-700 dark:text-amber-300/90' :
-                    'text-red-700 dark:text-rose-300/90')
-                  }`}>
-                  {idx.label}
-                </span>
-              </div>
+      {/* 
+          COMPACT LAYOUT: 3x3 grid for 9 items when at 50% width
+          Mobile: Scrollable rail
+          Desktop: 3-column grid with smaller cards
+       */}
+      <div
+        ref={scrollRef}
+        className="
+           w-full p-2
+           flex overflow-x-auto gap-2 snap-x snap-mandatory touch-pan-x no-scrollbar 
+           md:grid md:grid-cols-3 md:gap-2 md:overflow-visible
+         "
+      >
+        {indexes.map((idx) => (
+          <div
+            key={idx.id}
+            className="
+                 flex-shrink-0 w-[100px] md:w-auto h-[85px] 
+                 bg-slate-50/80 dark:bg-slate-700/40 
+                 border border-slate-200/60 dark:border-white/5 rounded-lg 
+                 p-1.5 flex flex-col items-center justify-center text-center 
+                 hover:bg-slate-100 hover:border-slate-300/80 hover:shadow-sm hover:scale-[1.02] 
+                 dark:hover:bg-slate-600 transition-all duration-200
+                 snap-start
+               "
+          >
+            <div className="p-1 bg-white/50 dark:bg-slate-800 rounded-full shadow-sm mb-0.5">
+              {getIcon(idx.icon)}
             </div>
-          ))}
-        </div>
-      </GlassCard>
-    </div>
+
+            <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-200 leading-tight">
+              {idx.name}
+            </span>
+
+            <div className="flex items-center justify-center space-x-1 bg-white/30 dark:bg-black/20 px-1.5 py-0.5 rounded-full mt-0.5">
+              <span className={`w-1 h-1 rounded-full ${getStatusColor(idx.status)}`}></span>
+              <span className={`text-[9px] font-bold uppercase ${idx.status === 'good' ? 'text-green-700 dark:text-emerald-300/90' :
+                (idx.status === 'moderate' ? 'text-orange-700 dark:text-amber-300/90' :
+                  'text-red-700 dark:text-rose-300/90')
+                }`}>
+                {idx.label}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </GlassCard>
   );
 };
 
