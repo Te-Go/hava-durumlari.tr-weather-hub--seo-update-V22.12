@@ -412,6 +412,12 @@ const WMO_TRANSLATION: Record<number, string> = {
   95: 'Fırtına', 96: 'Dolu Fırtınası', 99: 'Şiddetli Dolu'
 };
 
+// Helper: Reverse-lookup WMO code from condition text (for smartPhrase generation)
+const getWMOCodeFromCondition = (condition: string): number => {
+  const entry = Object.entries(WMO_TRANSLATION).find(([_, text]) => text === condition);
+  return entry ? parseInt(entry[0], 10) : 0;
+};
+
 const getWeatherIcon = (code: number, isDay: boolean, precipProb: number = 0): string => {
   // 1. Extreme Conditions - Distinct visuals
   if ([95, 96, 99].includes(code)) return 'storm';
@@ -677,7 +683,12 @@ export const transformToTomorrow = (data: WeatherData): WeatherData => {
     currentTemp: tomorrowDaily.high,
     condition: tomorrowDaily.condition || "Yarın",
     icon: tomorrowDaily.icon,
-    smartPhrase: `Yarın Beklenen`,
+    smartPhrase: generateSmartPhrase(
+      tomorrowDaily.high,
+      getWMOCodeFromCondition(tomorrowDaily.condition),
+      parseInt(tomorrowDaily.wind.replace(/[^0-9]/g, ''), 10) || 0,
+      tomorrowDaily.uvIndex || 0
+    ),
     high: tomorrowDaily.high,
     low: tomorrowDaily.low,
     windSpeed: parseInt(tomorrowDaily.wind.replace(/[^0-9]/g, ''), 10) || 0,
@@ -757,7 +768,12 @@ export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
     currentTemp: avgHigh,
     condition: mainCondition,
     icon: mainIcon,
-    smartPhrase: `Hafta sonu ${weekendDays.length === 2 ? 'Cumartesi ve Pazar' : weekendDays[0].day} için tahmin.`,
+    smartPhrase: generateSmartPhrase(
+      avgHigh,
+      getWMOCodeFromCondition(weekendDays[0].condition),
+      parseInt(weekendDays[0].wind.replace(/[^0-9]/g, ''), 10) || 0,
+      weekendDays[0].uvIndex || 0
+    ),
     high: avgHigh,
     low: avgLow,
     rainProb: maxRainProb,

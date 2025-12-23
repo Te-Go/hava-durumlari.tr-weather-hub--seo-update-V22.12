@@ -60,18 +60,21 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
             <div className="flex bg-white/40 dark:bg-slate-700/50 p-1.5 rounded-xl border border-white/20 dark:border-white/5 backdrop-blur-md w-full">
               <a
                 href={homeHref}
+                onClick={(e) => { e.preventDefault(); onToggleView('home'); }}
                 className={`flex-1 py-2 rounded-lg text-[11px] font-bold text-center transition-all ${activeView === 'home' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Bugün
               </a>
               <a
                 href={tomorrowHref}
+                onClick={(e) => { e.preventDefault(); onToggleView('tomorrow'); }}
                 className={`flex-1 py-2 rounded-lg text-[11px] font-bold text-center transition-all ${activeView === 'tomorrow' ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Yarın
               </a>
               <a
                 href={weekendHref}
+                onClick={(e) => { e.preventDefault(); onToggleView('weekend'); }}
                 className={`flex-1 py-2 rounded-lg text-[11px] font-bold text-center transition-all ${activeView === 'weekend' ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Hafta Sonu

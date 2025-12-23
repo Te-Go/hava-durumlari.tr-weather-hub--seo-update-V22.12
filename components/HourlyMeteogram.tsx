@@ -30,8 +30,9 @@ const getChartIcon = (iconName: string, size: number = 20) => {
 const HourlyMeteogram: React.FC<HourlyMeteogramProps> = ({ hourlyData, sunrise, sunset }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Use 24 hours of data
-    const data = hourlyData.slice(0, 24);
+    // Use up to 48 hours of data if available (e.g., Weekend mode), otherwise 24
+    const maxHours = Math.min(hourlyData.length, 48);
+    const data = hourlyData.slice(0, maxHours);
 
     // Temperature range for graph positioning (always use actual temp, not feels like)
     const temps = data.map(h => h.temp);
@@ -87,7 +88,7 @@ const HourlyMeteogram: React.FC<HourlyMeteogramProps> = ({ hourlyData, sunrise, 
                 <div className="flex items-center gap-2">
                     <div className="w-1.5 h-4 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full" />
                     <h3 className="font-bold text-slate-700 dark:text-slate-200">Saatlik Tahmin</h3>
-                    <span className="text-xs text-slate-400 dark:text-slate-500">(24 Saat)</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">({maxHours} Saat)</span>
                 </div>
                 {/* Sunrise/Sunset times in header */}
                 <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
