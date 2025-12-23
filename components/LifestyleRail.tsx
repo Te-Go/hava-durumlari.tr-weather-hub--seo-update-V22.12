@@ -1,6 +1,5 @@
-
 import React, { useRef } from 'react';
-import { LifestyleIndex, WeatherData } from '../types';
+import { WeatherData } from '../types';
 import GlassCard from './GlassCard';
 import { Icon } from './Icons';
 import { calculateLifestyleIndexes } from '../services/weatherService';
@@ -10,80 +9,85 @@ interface LifestyleRailProps {
 }
 
 const LifestyleRail: React.FC<LifestyleRailProps> = ({ data }) => {
-  // Safety Guard: If data is missing (during loading or error), do not render
   if (!data) return null;
 
   const indexes = calculateLifestyleIndexes(data);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // SINAN PROTOCOL: Premium Color Logic
   const getStatusColor = (status: string) => {
-    if (status === 'good') return 'bg-green-500 dark:bg-emerald-400';
-    if (status === 'moderate') return 'bg-orange-500 dark:bg-amber-400';
-    return 'bg-red-500 dark:bg-rose-400';
+    if (status === 'good') return 'bg-emerald-500 dark:bg-emerald-400';
+    if (status === 'moderate') return 'bg-amber-500 dark:bg-amber-400';
+    return 'bg-rose-500 dark:bg-rose-500'; // Sharper red for 'Bad'
   };
 
+  // SINAN PROTOCOL: Premium Icon Mapping (No more duplicate Suns)
   const getIcon = (iconName: string) => {
-    if (iconName === 'Footprints') return <Icon.Sun className="w-5 h-5 text-orange-500 dark:text-orange-400" />;
-    if (iconName === 'Baby') return <Icon.Sun className="w-5 h-5 text-pink-500 dark:text-pink-400" />;
-    if (iconName === 'Heart') return <Icon.Droplets className="w-5 h-5 text-rose-500 dark:text-rose-400" />;
-    if (iconName === 'Shield') return <Icon.AlertTriangle className="w-5 h-5 text-amber-500 dark:text-amber-400" />;
-    if (iconName === 'Flame') return <Icon.Flame className="w-5 h-5 text-red-500 dark:text-red-400" />;
-    if (iconName === 'Fish') return <Icon.Fish className="w-5 h-5 text-teal-500 dark:text-teal-400" />;
-    if (iconName === 'Car') return <Icon.Droplets className="w-5 h-5 text-blue-500 dark:text-blue-400" />;
-    if (iconName === 'Sprout') return <Icon.Sprout className="w-5 h-5 text-green-600 dark:text-green-500" />;
-    if (iconName === 'Bike') return <Icon.Bike className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />;
-    return <Icon.Sun className="w-5 h-5 text-slate-500" />;
+    switch (iconName) {
+      case 'Footprints': return <Icon.Activity className="w-5 h-5 text-orange-500 dark:text-orange-400" />; // Running
+      case 'Baby': return <Icon.Baby className="w-5 h-5 text-pink-500 dark:text-pink-400" />; // Kids
+      case 'Heart': return <Icon.Heart className="w-5 h-5 text-rose-500 dark:text-rose-400" />; // Health/Allergy
+      case 'Shield': return <Icon.Shield className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />; // Sensitive
+      case 'Flame': return <Icon.Flame className="w-5 h-5 text-red-500 dark:text-red-400" />; // BBQ
+      case 'Fish': return <Icon.Fish className="w-5 h-5 text-teal-500 dark:text-teal-400" />; // Fishing
+      case 'Car': return <Icon.Car className="w-5 h-5 text-blue-500 dark:text-blue-400" />; // Car Wash
+      case 'Sprout': return <Icon.Sprout className="w-5 h-5 text-green-600 dark:text-green-500" />; // Garden
+      case 'Bike': return <Icon.Bike className="w-5 h-5 text-cyan-500 dark:text-cyan-400" />; // Cycling
+      default: return <Icon.Sun className="w-5 h-5 text-slate-500" />;
+    }
   };
 
   return (
     <GlassCard className="flex flex-col relative h-full" noPadding>
-      {/* Compact Header */}
-      <div className="px-3 py-2 border-b border-glass-border dark:border-dark-border">
-        <h3 className="font-semibold text-slate-700 dark:text-slate-200 flex items-center text-sm">
-          <span className="text-base mr-1.5">🧬</span> Günlük Yaşam
+      <div className="px-4 py-3 border-b border-glass-border dark:border-dark-border flex justify-between items-center">
+        <h3 className="font-bold text-slate-700 dark:text-slate-200 flex items-center text-sm">
+          <Icon.Activity size={16} className="mr-2 text-blue-500" />
+          Günlük Yaşam İndeksi
         </h3>
+        {/* Premium Detail: A hint that these are calculated */}
+        <span className="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
+          Yapay Zeka Analizi
+        </span>
       </div>
 
-      {/* 
-          COMPACT LAYOUT: 3x3 grid for 9 items when at 50% width
-          Mobile: Scrollable rail
-          Desktop: 3-column grid with smaller cards
-       */}
       <div
         ref={scrollRef}
         className="
-           w-full p-2
-           flex overflow-x-auto gap-2 snap-x snap-mandatory touch-pan-x no-scrollbar 
-           md:grid md:grid-cols-3 md:gap-2 md:overflow-visible
+           w-full p-3
+           flex overflow-x-auto gap-3 snap-x snap-mandatory touch-pan-x custom-scrollbar
+           md:grid md:grid-cols-3 md:gap-3 md:overflow-visible
          "
       >
         {indexes.map((idx) => (
           <div
             key={idx.id}
+            title={`${idx.name}: ${idx.label}`} // Simple tooltip for accessibility
             className="
-                 flex-shrink-0 w-[100px] md:w-auto h-[85px] 
-                 bg-slate-50/80 dark:bg-slate-700/40 
-                 border border-slate-200/60 dark:border-white/5 rounded-lg 
-                 p-1.5 flex flex-col items-center justify-center text-center 
-                 hover:bg-slate-100 hover:border-slate-300/80 hover:shadow-sm hover:scale-[1.02] 
-                 dark:hover:bg-slate-600 transition-all duration-200
-                 snap-start
+                 group flex-shrink-0 w-[110px] md:w-auto h-[90px] 
+                 bg-white/60 dark:bg-slate-800/40 
+                 border border-slate-200/60 dark:border-slate-700 rounded-xl 
+                 p-2 flex flex-col items-center justify-between text-center 
+                 hover:bg-white hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5
+                 dark:hover:bg-slate-700/60 dark:hover:border-blue-500/50
+                 transition-all duration-300 cursor-default
+                 snap-start relative overflow-hidden
                "
           >
-            <div className="p-1 bg-white/50 dark:bg-slate-800 rounded-full shadow-sm mb-0.5">
+            {/* Status Indicator Line (Premium Touch) */}
+            <div className={`absolute top-0 left-0 w-full h-1 ${getStatusColor(idx.status)} opacity-80`} />
+
+            <div className="mt-1.5 p-1.5 bg-slate-50 dark:bg-slate-900 rounded-full shadow-sm group-hover:scale-110 transition-transform">
               {getIcon(idx.icon)}
             </div>
 
-            <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-200 leading-tight">
-              {idx.name}
-            </span>
-
-            <div className="flex items-center justify-center space-x-1 bg-white/30 dark:bg-black/20 px-1.5 py-0.5 rounded-full mt-0.5">
-              <span className={`w-1 h-1 rounded-full ${getStatusColor(idx.status)}`}></span>
-              <span className={`text-[9px] font-bold uppercase ${idx.status === 'good' ? 'text-green-700 dark:text-emerald-300/90' :
-                (idx.status === 'moderate' ? 'text-orange-700 dark:text-amber-300/90' :
-                  'text-red-700 dark:text-rose-300/90')
-                }`}>
+            <div className="flex flex-col items-center">
+              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 leading-none mb-1">
+                {idx.name}
+              </span>
+              <span className={`text-[10px] font-extrabold uppercase tracking-wide
+                  ${idx.status === 'good' ? 'text-emerald-600 dark:text-emerald-400' :
+                  (idx.status === 'moderate' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')}
+               `}>
                 {idx.label}
               </span>
             </div>

@@ -42,7 +42,7 @@ const ArchivePage: React.FC<ArchivePageProps> = ({ articles, onArticleClick, onB
       </div>
 
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-light text-slate-800 dark:text-slate-200 mb-2">Haberler & Makaleler</h1>
+        <h1 className="text-3xl font-light text-slate-800 dark:text-slate-200 mb-2">Meteorolojik Analizler</h1>
         <p className="text-slate-500 dark:text-slate-400">Güncel hava durumu gelişmeleri, analizler ve yaşam makaleleri.</p>
       </div>
 
@@ -67,8 +67,8 @@ const ArchivePage: React.FC<ArchivePageProps> = ({ articles, onArticleClick, onB
               key={cat}
               onClick={() => setActiveCategory(cat)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'bg-white/40 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-600'
+                ? 'bg-blue-500 text-white shadow-md'
+                : 'bg-white/40 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-600'
                 }`}
             >
               {cat}

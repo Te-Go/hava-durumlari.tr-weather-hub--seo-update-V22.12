@@ -80,7 +80,7 @@ const RadarNews: React.FC<RadarNewsProps> = ({ articles, weatherData, compact = 
 
       {/* Masonry News Grid - NOW LINK BASED */}
       <GlassCard className="flex flex-col">
-        <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-4">Haberler & Makaleler</h3>
+        <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-4">Meteorolojik Analizler</h3>
         <div className="grid grid-cols-2 gap-3">
           {displayArticles.map((item) => (
             <a

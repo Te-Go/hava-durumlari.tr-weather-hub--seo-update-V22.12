@@ -32,6 +32,8 @@ export interface HourlyForecast {
   windSpeed: number; // km/s or km/h
   feelsLike: number; // Apparent temperature
   isDay: boolean;    // true = day, false = night (for shading)
+  humidity: number;  // Relative humidity %
+  uvIndex: number;   // UV index (0-11+)
 }
 
 export interface DailyForecast {

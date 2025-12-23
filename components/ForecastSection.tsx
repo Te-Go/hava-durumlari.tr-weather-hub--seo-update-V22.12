@@ -17,17 +17,14 @@ interface MetricSparklineProps {
 }
 
 const MetricSparkline: React.FC<MetricSparklineProps> = ({ metric, hourlyData, dayFeelsLike }) => {
-  // Use first 24 hours of data
-  const chartData = hourlyData.slice(0, 24).map((h, idx) => ({
+  // SINAN PROTOCOL: REAL DATA MAPPING
+  const chartData = hourlyData.slice(0, 24).map((h) => ({
     time: h.time.split(':')[0],
     temp: Math.round(h.temp),
-    // Approximate feels-like based on wind chill (simplified)
-    feelsLike: Math.round(h.temp - (h.windSpeed > 10 ? 2 : 0) - (h.precipProb > 50 ? 1 : 0)),
+    feelsLike: Math.round(h.feelsLike), // Real API feelsLike
     precipProb: h.precipProb,
-    // Approximate humidity: higher in morning/evening, lower midday (simplified pattern)
-    humidity: Math.round(60 + 20 * Math.cos((idx - 6) * Math.PI / 12)),
-    // UV approximation: peaks at noon, zero at night
-    uv: idx >= 6 && idx <= 18 ? Math.round(6 * Math.sin((idx - 6) * Math.PI / 12)) : 0,
+    humidity: h.humidity,               // Real API Humidity
+    uv: h.uvIndex,                       // Real API UV
     windSpeed: h.windSpeed
   }));
 

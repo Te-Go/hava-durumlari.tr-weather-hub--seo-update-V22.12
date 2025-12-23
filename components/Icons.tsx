@@ -4,7 +4,8 @@ import {
   Search, MapPin, ChevronRight, ChevronLeft, ChevronDown, Menu, Umbrella, Eye, ArrowUp, ArrowDown, Moon,
   Flame, Bike, Fish, Sprout,
   Cloud, CloudSnow, CloudLightning, AlertTriangle, CloudFog, Snowflake,
-  Gauge, Sunrise, FileText, Info, Clock, Calendar
+  Gauge, Sunrise, FileText, Info, Clock, Calendar,
+  Activity, Heart, Shield, Car, Smile
 } from 'lucide-react';
 
 export const Icon = {
@@ -40,7 +41,12 @@ export const Icon = {
   FileText,
   Info,
   Clock,
-  Calendar
+  Calendar,
+  Activity,
+  Heart,
+  Shield,
+  Car,
+  Baby: Smile // Use Smile as Baby icon substitute
 };
 
 // --- PREMIUM 3D SVG ENGINE (ROBUST & ANIMATED) ---

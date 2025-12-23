@@ -217,30 +217,45 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
       try {
         const tickers = await getMarketData();
         setMarketData(Array.isArray(tickers) ? tickers : []);
-        const liveArticles = await fetchLiveArticles();
+        // SINAN TAG BRIDGE: Pass city for context-aware articles
+        const liveArticles = await fetchLiveArticles(currentCity);
         setArticles(liveArticles);
       } catch (e) { console.error("Global Data Init Failed", e); }
     };
     initGlobalData();
+  }, [currentCity]); // Refetch articles when city changes
 
+  // VIEW RESOLUTION & URL ROUTING (Runs once on mount)
+  useEffect(() => {
     // View Resolution based on URL (Server routing support)
-    // HYBRID MODEL: Check query param first (?gun=yarin), then legacy path (/yarin/)
+    // SINAN SILO PROTOCOL: /hava-durumu/city/view
     const urlParams = new URLSearchParams(window.location.search);
     const gunParam = urlParams.get('gun');
     const path = window.location.pathname;
-
-    if (gunParam === 'yarin' || path.includes('yarin')) setView({ type: 'tomorrow' });
-    else if (gunParam === 'hafta-sonu' || path.includes('hafta-sonu')) setView({ type: 'weekend' });
-
-    // CRITICAL FIX: Extract city from URL on initial mount
-    // This ensures the correct city is loaded when navigating directly to a city URL
     const segments = path.split('/').filter(Boolean);
-    const citySlug = segments[segments.length - 1]; // Last segment is city slug
-    console.log('[DEBUG] URL City Extraction:', { path, segments, citySlug });
-    if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
-      const city = fromSlug(citySlug);
-      console.log('[DEBUG] City resolved:', { citySlug, city });
-      if (city) setCurrentCity(city);
+    // Silo structure: [0]=hava-durumu, [1]=city, [2]=view
+
+    // Check for view in segment[2] or legacy paths
+    const viewSegment = segments[2] || '';
+    if (gunParam === 'yarin' || viewSegment === 'yarin' || path.includes('/yarin')) setView({ type: 'tomorrow' });
+    else if (gunParam === 'hafta-sonu' || viewSegment === 'hafta-sonu' || path.includes('/hafta-sonu')) setView({ type: 'weekend' });
+
+    // SINAN SILO: Extract city from segment[1] (after /hava-durumu/)
+    console.log('[DEBUG] Silo URL Parsing:', { path, segments });
+    if (segments[0] === 'hava-durumu' && segments[1]) {
+      const citySlug = segments[1];
+      if (citySlug !== 'yarin' && citySlug !== 'hafta-sonu') {
+        const city = fromSlug(citySlug);
+        console.log('[DEBUG] Silo City resolved:', { citySlug, city });
+        if (city) setCurrentCity(city);
+      }
+    } else {
+      // Legacy fallback: last segment is city
+      const citySlug = segments[segments.length - 1];
+      if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
+        const city = fromSlug(citySlug);
+        if (city) setCurrentCity(city);
+      }
     }
 
     // SPA Routing: Handle browser back/forward without full reload
@@ -248,22 +263,32 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
       const path = window.location.pathname;
       const urlParams = new URLSearchParams(window.location.search);
       const gunParam = urlParams.get('gun');
+      const segments = path.split('/').filter(Boolean);
 
-      // 1. Determine view type from URL (hybrid model: ?gun= or legacy path)
-      if (gunParam === 'yarin' || path.includes('yarin')) {
+      // SINAN SILO: Determine view from segment[2] or legacy path
+      const viewSegment = segments[2] || '';
+      if (gunParam === 'yarin' || viewSegment === 'yarin' || path.includes('/yarin')) {
         setView({ type: 'tomorrow' });
-      } else if (gunParam === 'hafta-sonu' || path.includes('hafta-sonu')) {
+      } else if (gunParam === 'hafta-sonu' || viewSegment === 'hafta-sonu' || path.includes('/hafta-sonu')) {
         setView({ type: 'weekend' });
       } else {
         setView({ type: 'home' });
       }
 
-      // 2. Extract and set city from URL slug
-      const segments = path.split('/').filter(Boolean);
-      const citySlug = segments[segments.length - 1]; // Last segment is city slug
-      if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
-        const city = fromSlug(citySlug);
-        if (city) setCurrentCity(city);
+      // SINAN SILO: Extract city from segment[1]
+      if (segments[0] === 'hava-durumu' && segments[1]) {
+        const citySlug = segments[1];
+        if (citySlug !== 'yarin' && citySlug !== 'hafta-sonu') {
+          const city = fromSlug(citySlug);
+          if (city) setCurrentCity(city);
+        }
+      } else {
+        // Legacy fallback
+        const citySlug = segments[segments.length - 1];
+        if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
+          const city = fromSlug(citySlug);
+          if (city) setCurrentCity(city);
+        }
       }
     };
 
@@ -356,20 +381,21 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
       }
     }
 
-    const today = new Date();
-    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-    const tomorrowStr = tomorrow.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+    // SINAN STANDARD TITLE FORMAT - Must match PHP SEO Engine exactly
+    if (!weatherData) return;
 
+    const cityDisplay = fromSlug(toSlug(currentCity)); // Ensure Turkish chars (İstanbul not Istanbul)
+
+    let pageTitle = '';
     if (view.type === 'tomorrow') {
-      document.title = `${currentCity} Yarınki Hava Durumu - ${tomorrowStr} | TG`;
-    }
-    else if (view.type === 'weekend') {
-      document.title = `Hafta Sonu Hava Durumu - ${currentCity} | TG`;
-    }
-    else {
-      document.title = `${currentCity} Hava Durumu - 15 Günlük Tahmin | TG`;
+      pageTitle = `${cityDisplay} Yarınki Hava Durumu - 15 Günlük Tahmin | TG`;
+    } else if (view.type === 'weekend') {
+      pageTitle = `Hafta Sonu ${cityDisplay} Hava Durumu ve Raporu | TG`;
+    } else {
+      pageTitle = `${cityDisplay} Hava Durumu - 15 Günlük Tahmin | TG`;
     }
 
+    document.title = pageTitle;
     trackEvent('view_weather', 'city', currentCity);
   }, [weatherData, view.type, currentCity, isManualTheme]);
 
@@ -381,10 +407,12 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     saveUserPreferences({ lastCity: prettyName });
 
     const slug = toSlug(prettyName);
-    let prefix = '';
-    if (view.type === 'tomorrow') prefix = '/yarin';
-    else if (view.type === 'weekend') prefix = '/hafta-sonu';
-    window.history.pushState({ city: prettyName }, '', `${prefix}/${slug}`);
+    // SINAN SILO PROTOCOL: /hava-durumu/city/view
+    let path = `/hava-durumu/${slug}`;
+    if (view.type === 'tomorrow') path += '/yarin';
+    else if (view.type === 'weekend') path += '/hafta-sonu';
+
+    window.history.pushState({ city: prettyName }, '', path);
     trackEvent('change_city', 'navigation', prettyName);
 
     setTimeout(() => {
@@ -395,28 +423,33 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   const handleViewToggle = (newView: 'home' | 'tomorrow' | 'weekend') => {
     setView({ type: newView });
     const slug = toSlug(currentCity);
-    let prefix = '';
-    if (newView === 'tomorrow') prefix = '/yarin';
-    else if (newView === 'weekend') prefix = '/hafta-sonu';
-    window.history.pushState({ city: currentCity }, '', `${prefix}/${slug}`);
+
+    // SINAN SILO PROTOCOL: /hava-durumu/city/view
+    let path = `/hava-durumu/${slug}`;
+    if (newView === 'tomorrow') path += '/yarin';
+    else if (newView === 'weekend') path += '/hafta-sonu';
+
+    window.history.pushState({ city: currentCity }, '', path);
     trackEvent('toggle_view', 'hero', newView);
   };
 
   const handleFooterNavigate = (dest: string) => {
     // Navigate to React-controlled views or update state for cities
     window.scrollTo(0, 0);
+    const slug = toSlug(currentCity);
 
+    // SINAN SILO PROTOCOL: /hava-durumu/city/view
     if (dest === 'home') {
       setView({ type: 'home' });
-      window.history.pushState({ city: currentCity }, '', `/${toSlug(currentCity)}`);
+      window.history.pushState({ city: currentCity }, '', `/hava-durumu/${slug}`);
     }
     else if (dest === 'tomorrow') {
       setView({ type: 'tomorrow' });
-      window.history.pushState({ city: currentCity }, '', `/yarin/${toSlug(currentCity)}`);
+      window.history.pushState({ city: currentCity }, '', `/hava-durumu/${slug}/yarin`);
     }
     else if (dest === 'weekend') {
       setView({ type: 'weekend' });
-      window.history.pushState({ city: currentCity }, '', `/hafta-sonu/${toSlug(currentCity)}`);
+      window.history.pushState({ city: currentCity }, '', `/hava-durumu/${slug}/hafta-sonu`);
     }
     else if (dest === 'cities') {
       setView({ type: 'cities' });
@@ -425,7 +458,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
       const city = dest.split(':')[1];
       setCurrentCity(city);
       setView({ type: 'home' });
-      window.history.pushState({ city }, '', `/${toSlug(city)}`);
+      window.history.pushState({ city }, '', `/hava-durumu/${toSlug(city)}`);
     }
   };
 
@@ -502,7 +535,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                 <LazySection
                   placeholder={<div className="min-h-[300px] animate-pulse bg-slate-100/50 dark:bg-slate-800/50 rounded-xl mt-6 mb-6" />}
                 >
-                  <NewsSection articles={articles} />
+                  <NewsSection city={currentCity} />
                 </LazySection>
                 <LazySection>
                   <AdGrid />

@@ -36,6 +36,10 @@ const CityIndex: React.FC<CityIndexProps> = ({ onCityClick, onBack }) => {
           <a
             key={city}
             href={`/hava-durumu/${toSlug(city)}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onCityClick(city);
+            }}
             className="block"
           >
             <GlassCard

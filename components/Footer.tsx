@@ -22,21 +22,21 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div>
           <h4 className="text-white font-bold mb-4">Hakkımızda</h4>
           <ul className="space-y-2">
-            <li><button onClick={() => onNavigate('home')} className="hover:text-white transition-colors">Hava Durumları</button></li>
+            <li><a href="/" onClick={(e) => handleLinkClick(e, 'home')} className="hover:text-white transition-colors">Hava Durumları</a></li>
             <li><a href="/iletisim" className="hover:text-white transition-colors">İletişim</a></li>
           </ul>
         </div>
 
-        {/* Column 2: Haberler & Makaleler */}
+        {/* Column 2: Analizler & Raporlar */}
         <div>
-          <h4 className="text-white font-bold mb-4">Haberler & Makaleler</h4>
+          <h4 className="text-white font-bold mb-4">Analizler & Raporlar</h4>
           <ul className="space-y-2">
             <li><a href="/yarin" onClick={(e) => handleLinkClick(e, 'tomorrow')} className="hover:text-white transition-colors text-blue-400 font-semibold">Yarınki Hava Durumu</a></li>
             <li><a href="/hafta-sonu" onClick={(e) => handleLinkClick(e, 'weekend')} className="hover:text-white transition-colors text-indigo-400 font-semibold">Bu Hafta Sonu</a></li>
             {/* SEO Links for Content */}
             <li><a href="/kategori/makaleler" className="hover:text-white transition-colors">Makaleler</a></li>
             <li><a href="/kategori/hava-analizleri" className="hover:text-white transition-colors">Hava Analizleri</a></li>
-            <li><a href="/kategori/haberler" className="hover:text-white transition-colors">Haberler</a></li>
+            <li><a href="/kategori/haberler" className="hover:text-white transition-colors">Gündem</a></li>
           </ul>
         </div>
 
@@ -44,7 +44,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div>
           <h4 className="text-white font-bold mb-4">Keşfet</h4>
           <ul className="space-y-2">
-            <li><button onClick={() => onNavigate('cities')} className="text-blue-400 hover:text-white font-semibold">Tüm Şehirler →</button></li>
+            <li><a href="/sehirler" onClick={(e) => handleLinkClick(e, 'cities')} className="text-blue-400 hover:text-white font-semibold">Tüm Şehirler →</a></li>
             {REGULAR_CITIES.slice(0, 5).map((city) => (
               <li key={city}>
                 <a

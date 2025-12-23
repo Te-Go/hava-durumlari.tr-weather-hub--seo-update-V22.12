@@ -419,49 +419,28 @@ const getWMOCodeFromCondition = (condition: string): number => {
 };
 
 const getWeatherIcon = (code: number, isDay: boolean, precipProb: number = 0): string => {
-  // 1. Extreme Conditions - Distinct visuals
+  // 1. Extreme & Frozen (Keep as is)
   if ([95, 96, 99].includes(code)) return 'storm';
-  if ([96, 99].includes(code)) return 'hail'; // Hail-specific storms
-  if ([71, 73, 75, 85, 86].includes(code)) return 'snow';
-  if (code === 77) return 'sleet'; // Snow grains
-
-  // 2. Freezing conditions - NEW
+  if ([71, 73, 75, 85, 86, 77].includes(code)) return 'snow';
   if ([56, 57, 66, 67].includes(code)) return 'freezing-rain';
-
-  // 3. Fog - Specific visual
   if (code === 45 || code === 48) return 'fog';
 
-  // 3. RAIN PERCEPTION CORRECTION (IMPROVED)
-  // Industry standard threshold is usually around 50%, but 40% with "Sunny" icon is confusing.
-  // We lower threshold to 40% to force Rain icon if there is significant chance.
-  if (precipProb >= 40) {
-    return 'rain';
-  }
+  // 2. SINAN REFINEMENT: Smart Rain Thresholds
+  // If code says "Clear" (0) but high rain prob, show 'cloudy' as warning.
+  // Only show 'rain' icon if probability is severe (>60%) OR code matches rain.
+  if (precipProb >= 60) return 'rain';
 
-  // 4. MIXED CONDITION HANDLING
-  // If prob is moderate (25-39%) and code is "Sunny" (0,1), visually suggest "Cloudy" instead of "Sunny"
-  // to imply it's not a perfect beach day.
-  if (precipProb >= 25 && [0, 1].includes(code)) {
-    return isDay ? 'cloudy' : 'cloudy-night';
-  }
+  // If prob is moderate (30-59%), do not show sun. Show cloud.
+  if (precipProb >= 30 && isDay) return 'cloudy';
+  if (precipProb >= 30 && !isDay) return 'cloudy-night';
 
-  // 5. LOW PROBABILITY SUPPRESSION
-  // If code is "Rain" but probability is very low (< 25%), show Cloud.
-  if (precipProb < 25 && [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
-    return isDay ? 'cloudy' : 'cloudy-night';
-  }
-
-  // 6. Standard Clear / Cloudy Codes
+  // 3. Standard Codes
+  if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return 'rain';
   if (code === 0 || code === 1) return isDay ? 'sunny' : 'moon';
-  if (code === 2) return isDay ? 'cloudy' : 'cloudy-night'; // Partly Cloudy (Sun+Cloud)
-  if (code === 3) return 'overcast'; // Overcast (Cloud only)
+  if (code === 2) return isDay ? 'cloudy' : 'cloudy-night';
+  if (code === 3) return 'overcast';
 
-  // Fallback for codes (like 51-82) that didn't trigger the >= 40% rain check but are > 25%
-  if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
-    return 'rain';
-  }
-
-  return 'cloudy';
+  return 'cloudy'; // Safe fallback
 }
 
 const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData> => {
@@ -488,11 +467,13 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
     hourlyData.push({
       time: hTime,
       temp: hourly.temperature_2m[i],
-      icon: getWeatherIcon(code, isHourDay, prob), // Passed prob
+      icon: getWeatherIcon(code, isHourDay, prob),
       precipProb: prob,
       windSpeed: Math.round(hourly.wind_speed_10m[i]),
       feelsLike: Math.round(hourly.apparent_temperature[i]),
-      isDay: isHourDay
+      isDay: isHourDay,
+      humidity: hourly.relative_humidity_2m[i] || 50, // Real humidity data
+      uvIndex: hourly.uv_index[i] || 0                // Real UV index data
     });
   }
 
@@ -587,7 +568,9 @@ const getMockWeatherData = (city: string): WeatherData => {
       precipProb: 10,
       windSpeed: 10,
       feelsLike: baseTemp + Math.sin(i / 3) * 4,
-      isDay: i % 24 >= 6 && i % 24 < 20
+      isDay: i % 24 >= 6 && i % 24 < 20,
+      humidity: 50 + Math.round(Math.sin(i / 6) * 15), // Mock: 35-65% range
+      uvIndex: i % 24 >= 6 && i % 24 < 20 ? Math.max(0, 5 - Math.abs(12 - (i % 24)) * 0.5) : 0 // Mock: peaks midday
     })),
     // Align with API: Provide exactly 15 days
     daily: Array.from({ length: 15 }).map((_, i) => {
@@ -612,34 +595,26 @@ const getMockWeatherData = (city: string): WeatherData => {
 };
 
 export const getWeatherData = async (city: string): Promise<WeatherData> => {
-  let lat = 39.9208; // Default Ankara
-  let lon = 32.8541;
   let finalCityName = city;
 
-  // 1. Check Preloaded Config
+  // 1. Check Preloaded Config for display name
   if (CONFIG.preloadedGeo && toSlug(CONFIG.preloadedGeo.city) === toSlug(city)) {
-    lat = CONFIG.preloadedGeo.lat;
-    lon = CONFIG.preloadedGeo.lon;
     finalCityName = CONFIG.preloadedGeo.city;
-  } else {
-    // 2. Open-Meteo Geocoding (Dynamic, replaces local DB)
-    const geoData = await fetchGeocoding(city);
-    if (geoData) {
-      lat = geoData.lat;
-      lon = geoData.lon;
-      finalCityName = geoData.name;
-    }
   }
 
+  // SINAN PROTOCOL: Use WordPress Proxy
   try {
-    // Explicitly request 15 days + 168 hours (7 days) for weekend hourly data
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&forecast_hours=168&timezone=auto`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Open-Meteo API Failed');
+    // We send the slug (e.g., 'istanbul') to our WP backend
+    const proxyUrl = `/wp-json/sinan/v1/weather?city=${toSlug(finalCityName)}`;
+
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error('WP Proxy Failed');
+
     const data = await response.json();
     return mapOpenMeteoToModel(finalCityName, data);
+
   } catch (e) {
-    console.warn("Weather API Failed/Blocked, using Mock Data Fallback");
+    console.warn("Proxy Failed, using Mock Data");
     return getMockWeatherData(finalCityName);
   }
 };
@@ -832,24 +807,62 @@ const NEWS_DATA: NewsItem[] = [
   { id: 4, title: 'Hafta Sonu Planları', image: 'https://picsum.photos/400/350?random=4', category: 'Yaşam', date: '14 Mayıs 2025', link: '/haber/hafta-sonu-planlari' }
 ];
 
-export const fetchLiveArticles = async (): Promise<NewsItem[]> => {
+// SINAN PROTOCOL: Smart Tag Bridge
+// Fetches 'Analysis' category, filtered by City Tag if available.
+export const fetchLiveArticles = async (cityName?: string): Promise<NewsItem[]> => {
+
+  // ⛔️ CONFIGURATION: Replace '21' with your actual 'Meteorolojik Analiz' Category ID
+  const ANALYSIS_CATEGORY_ID = 21;
+
+  // Default: Fetch standard Analysis posts
+  let endpoint = `/wp-json/wp/v2/posts?_embed&per_page=6&categories=${ANALYSIS_CATEGORY_ID}`;
+
+  // Production check
   if (CONFIG.isProduction || window.location.hostname.includes('hava-durumlari')) {
     try {
-      // Optimally, we fetch the link (slug) instead of content.rendered
-      const response = await fetch('/wp-json/wp/v2/posts?_embed&per_page=10');
+      // 1. THE TAG BRIDGE (Context Injection)
+      if (cityName) {
+        try {
+          // Convert "İstanbul" -> "istanbul" to match WP Tag Slug
+          const tagSlug = toSlug(cityName);
+
+          // Ask WP: "What is the ID for the tag 'istanbul'?"
+          const tagRes = await fetch(`/wp-json/wp/v2/tags?slug=${tagSlug}`);
+          const tags = await tagRes.json();
+
+          // If tag exists (e.g., ID 12), filter posts by this tag
+          if (Array.isArray(tags) && tags.length > 0) {
+            const tagId = tags[0].id;
+            endpoint += `&tags=${tagId}`;
+            // console.log(`[Sinan Bridge] Filtered by Tag: ${cityName} (ID: ${tagId})`);
+          }
+        } catch (err) {
+          // Silently fail back to general news if tag lookup fails
+          // console.warn("Tag lookup failed, showing general analysis.");
+        }
+      }
+
+      // 2. FETCH CONTENT
+      const response = await fetch(endpoint);
       if (!response.ok) throw new Error('WP API Failed');
       const posts = await response.json();
+
+      // 3. MAP TO APP MODEL
       return posts.map((post: any) => ({
         id: post.id,
         title: post.title.rendered,
-        // Removed content mapping to save bandwidth & SEO duplication
-        link: post.link, // WordPress Permalink
+        link: post.link, // WordPress Permalink for SEO
         image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/400/300?random=${post.id}`,
-        category: post._embedded?.['wp:term']?.[0]?.[0]?.name || 'Genel',
+        category: 'Meteorolojik Analiz', // Unified Label
         date: new Date(post.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
       }));
-    } catch (e) { }
+
+    } catch (e) {
+      console.warn("[Sinan Bridge] API Error:", e);
+    }
   }
+
+  // Fallback Mock Data (Only if API fails completely)
   return NEWS_DATA;
 };
 
