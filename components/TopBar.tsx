@@ -26,7 +26,7 @@ const TopBar: React.FC<TopBarProps> = ({ tickers, currentTemp, onHomeClick, posi
   const weatherLogo = HUB_LOGOS.WEATHER;
 
   return (
-    <div className={`bg-deep-navy text-white py-2 px-4 overflow-x-auto no-scrollbar w-full transition-colors duration-500 ${positionClass}`}>
+    <div className={`bg-deep-navy text-white py-2 px-4 overflow-x-auto no-scrollbar w-full min-h-[48px] transition-colors duration-500 ${positionClass}`}>
       <div className="flex items-center justify-evenly w-full">
         {/* Left Section: Logo & Toggle */}
         <div className="flex items-center space-x-3">

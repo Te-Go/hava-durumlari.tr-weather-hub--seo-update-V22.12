@@ -15,10 +15,11 @@ import CityIndex from './components/CityIndex';
 import AdGrid from './components/AdGrid';
 import LifestyleRail from './components/LifestyleRail';
 import CookieBanner from './components/CookieBanner';
-import HorizontalAd from './components/HorizontalAd';
+import WeatherTriggeredAd from './components/WeatherTriggeredAd';
 // DesktopSidebarLeft removed from layout
 import DesktopSidebarRight from './components/DesktopSidebarRight';
 import NewsSection from './components/NewsSection';
+import LazySection from './components/LazySection';
 
 type ViewState =
   | { type: 'home' }
@@ -493,13 +494,19 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                   </div>
                 </div>
 
-                {/* Horizontal Ad Unit */}
-                <HorizontalAd />
+                {/* Weather-Triggered Contextual Ad Unit */}
+                <WeatherTriggeredAd weatherData={displayData} />
 
                 <ForecastSection data={displayData} focusTomorrow={view.type === 'tomorrow'} />
                 <HistoricalChart weatherData={displayData} />
-                <NewsSection articles={articles} />
-                <AdGrid />
+                <LazySection
+                  placeholder={<div className="min-h-[300px] animate-pulse bg-slate-100/50 dark:bg-slate-800/50 rounded-xl mt-6 mb-6" />}
+                >
+                  <NewsSection articles={articles} />
+                </LazySection>
+                <LazySection>
+                  <AdGrid />
+                </LazySection>
               </div>
             )}
           </>

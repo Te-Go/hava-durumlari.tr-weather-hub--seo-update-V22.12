@@ -1259,46 +1259,23 @@ const generateTimeframeBlock = (
 /**
  * Generates structured forecast table for rich snippet opportunities.
  * Competitors rank well with visible tables.
+ * NOTE: For 'tomorrow' and 'weekend', the data object is already transformed
+ * by weatherService.ts to contain the correct values at the root level.
  */
 const generateForecastTable = (
     data: WeatherData,
     timeframe: Timeframe
 ): ForecastTableRow[] => {
-    const tomorrow = data.daily[1];
-    const weekend = data.daily.slice(5, 7);
-
-    if (timeframe === 'today') {
-        return [
-            { metric: 'En Yüksek', value: `${data.high}°`, icon: 'thermometer' },
-            { metric: 'En Düşük', value: `${data.low}°`, icon: 'thermometer' },
-            { metric: 'Yağış İhtimali', value: `%${data.rainProb}`, icon: 'cloud-rain' },
-            { metric: 'Rüzgâr', value: `${getWindDirectionLabel(parseFloat(data.windDirection))} ${data.windSpeed} km/sa`, icon: 'wind' },
-            { metric: 'Nem', value: `%${data.humidity}`, icon: 'droplets' },
-            { metric: 'UV İndeksi', value: `${data.uvIndex}`, icon: 'sun' },
-        ];
-    } else if (timeframe === 'tomorrow' && tomorrow) {
-        return [
-            { metric: 'En Yüksek', value: `${tomorrow.high}°`, icon: 'thermometer' },
-            { metric: 'En Düşük', value: `${tomorrow.low}°`, icon: 'thermometer' },
-            { metric: 'Yağış İhtimali', value: `%${tomorrow.rainProb}`, icon: 'cloud-rain' },
-            { metric: 'Hava Durumu', value: tomorrow.condition, icon: 'cloud' },
-        ];
-    } else if (timeframe === 'weekend' && weekend.length >= 2) {
-        const saturday = weekend[0];
-        const sunday = weekend[1];
-        const avgHigh = Math.round((saturday.high + sunday.high) / 2);
-        const avgLow = Math.round((saturday.low + sunday.low) / 2);
-        const maxRainProb = Math.max(saturday.rainProb, sunday.rainProb);
-
-        return [
-            { metric: 'Cumartesi', value: `${saturday.high}°/${saturday.low}° - ${saturday.condition}`, icon: 'calendar' },
-            { metric: 'Pazar', value: `${sunday.high}°/${sunday.low}° - ${sunday.condition}`, icon: 'calendar' },
-            { metric: 'Ortalama Sıcaklık', value: `${avgHigh}°/${avgLow}°`, icon: 'thermometer' },
-            { metric: 'Maks. Yağış İhtimali', value: `%${maxRainProb}`, icon: 'cloud-rain' },
-        ];
-    }
-
-    return [];
+    // All timeframes use the same structure now - the data.high/low/etc are already
+    // transformed by weatherService.ts for tomorrow/weekend views
+    return [
+        { metric: 'En Yüksek', value: `${data.high}°`, icon: 'thermometer' },
+        { metric: 'En Düşük', value: `${data.low}°`, icon: 'thermometer' },
+        { metric: 'Yağış İhtimali', value: `%${data.rainProb}`, icon: 'cloud-rain' },
+        { metric: 'Rüzgâr', value: `${getWindDirectionLabel(parseFloat(data.windDirection))} ${data.windSpeed} km/sa`, icon: 'wind' },
+        { metric: 'Nem', value: `%${data.humidity}`, icon: 'droplets' },
+        { metric: 'UV İndeksi', value: `${data.uvIndex}`, icon: 'sun' },
+    ];
 };
 
 // ============================================================================
@@ -1312,7 +1289,9 @@ const generateFAQ = (
 ): Array<{ question: string; answer: string }> => {
     const faq: Array<{ question: string; answer: string }> = [];
     const tomorrow = data.daily[1];
-    const weekend = data.daily.slice(5, 7); // Saturday and Sunday
+    // For weekend view, the daily array is already transformed by weatherService.ts
+    // to contain weekend days at indices 0 and 1 (not 5 and 6)
+    const weekend = timeframe === 'weekend' ? data.daily.slice(0, 2) : data.daily.slice(5, 7);
 
     // ========================================================================
     // TODAY TIMEFRAME FAQs

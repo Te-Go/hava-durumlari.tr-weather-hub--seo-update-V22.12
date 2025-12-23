@@ -694,6 +694,8 @@ export const transformToTomorrow = (data: WeatherData): WeatherData => {
     windSpeed: parseInt(tomorrowDaily.wind.replace(/[^0-9]/g, ''), 10) || 0,
     rainProb: tomorrowDaily.rainProb,
     humidity: tomorrowDaily.humidity,
+    uvIndex: tomorrowDaily.uvIndex || data.uvIndex,
+    feelsLike: tomorrowDaily.feelsLike || data.feelsLike,
     hourly: tomorrowHourly,
   };
 };
@@ -759,6 +761,10 @@ export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
   const avgHigh = Math.round(weekendDays.reduce((sum, d) => sum + d.high, 0) / weekendDays.length);
   const avgLow = Math.round(weekendDays.reduce((sum, d) => sum + d.low, 0) / weekendDays.length);
   const maxRainProb = Math.max(...weekendDays.map(d => d.rainProb));
+  const avgWindSpeed = Math.round(weekendDays.reduce((sum, d) => sum + parseInt(d.wind.replace(/[^0-9]/g, ''), 10), 0) / weekendDays.length);
+  const avgHumidity = Math.round(weekendDays.reduce((sum, d) => sum + d.humidity, 0) / weekendDays.length);
+  const maxUvIndex = Math.max(...weekendDays.map(d => d.uvIndex || 0));
+  const avgFeelsLike = Math.round(weekendDays.reduce((sum, d) => sum + (d.feelsLike || d.high), 0) / weekendDays.length);
 
   const mainIcon = weekendDays[0].icon;
   const mainCondition = weekendDays[0].condition;
@@ -776,7 +782,11 @@ export const getWeekendDashboardData = (data: WeatherData): WeatherData => {
     ),
     high: avgHigh,
     low: avgLow,
+    windSpeed: avgWindSpeed,
     rainProb: maxRainProb,
+    humidity: avgHumidity,
+    uvIndex: maxUvIndex,
+    feelsLike: avgFeelsLike,
     hourly: weekendHourly.length > 0 ? weekendHourly : data.hourly.slice(0, 48),
     daily: weekendDays.length >= 2 ? weekendDays : data.daily.slice(0, 7),
   };
