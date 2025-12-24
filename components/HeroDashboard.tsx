@@ -73,7 +73,7 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
           <div>
             <div className="flex items-center justify-between mt-2">
               <div>
-                <h1 className="text-7xl font-light text-slate-800 dark:text-white tracking-tighter">
+                <h1 className="sinan-speakable-temp text-7xl font-light text-slate-800 dark:text-white tracking-tighter">
                   {Math.round(data.currentTemp)}°
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">{data.condition}</p>
@@ -88,7 +88,7 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
                 <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                 <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase">Öneri</span>
               </div>
-              <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+              <p className="sinan-speakable-summary text-sm text-slate-700 dark:text-slate-300 leading-snug">
                 {data.smartPhrase}
               </p>
             </div>

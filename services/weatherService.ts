@@ -17,6 +17,13 @@ export const getConfig = (): TedderConfig => {
 // Legacy alias for backwards compatibility - prefer getConfig() for runtime access
 export const CONFIG = getConfig();
 
+// SINAN: Decode WordPress HTML entities (e.g., &quot; → ")
+const decodeHTMLEntities = (text: string): string => {
+  const textArea = document.createElement('textarea');
+  textArea.innerHTML = text;
+  return textArea.value;
+};
+
 // Placeholder for Hub Logos
 export const HUB_LOGOS = {
   GOLD: CONFIG.logos?.GOLD || '/logos/logo-altin.png',
@@ -807,63 +814,71 @@ const NEWS_DATA: NewsItem[] = [
   { id: 4, title: 'Hafta Sonu Planları', image: 'https://picsum.photos/400/350?random=4', category: 'Yaşam', date: '14 Mayıs 2025', link: '/haber/hafta-sonu-planlari' }
 ];
 
-// SINAN PROTOCOL: Smart Tag Bridge
-// Fetches 'Analysis' category, filtered by City Tag if available.
+// SINAN PROTOCOL V3: Smart Backfill Bridge
+// Always ensures 6 articles by mixing city-specific + general news
 export const fetchLiveArticles = async (cityName?: string): Promise<NewsItem[]> => {
+  const ANALYSIS_CATEGORY_ID = 21; // Your ID
+  const baseEndpoint = `/wp-json/wp/v2/posts?_embed&per_page=6&categories=${ANALYSIS_CATEGORY_ID}`;
 
-  // ⛔️ CONFIGURATION: Replace '21' with your actual 'Meteorolojik Analiz' Category ID
-  const ANALYSIS_CATEGORY_ID = 21;
+  try {
+    let specificPosts: any[] = [];
+    let generalPosts: any[] = [];
 
-  // Default: Fetch standard Analysis posts
-  let endpoint = `/wp-json/wp/v2/posts?_embed&per_page=6&categories=${ANALYSIS_CATEGORY_ID}`;
+    // 1. FETCH SPECIFIC (If city provided)
+    if (cityName) {
+      try {
+        const tagSlug = toSlug(cityName);
+        const tagRes = await fetch(`/wp-json/wp/v2/tags?slug=${tagSlug}`);
+        const tags = await tagRes.json();
 
-  // Production check
-  if (CONFIG.isProduction || window.location.hostname.includes('hava-durumlari')) {
-    try {
-      // 1. THE TAG BRIDGE (Context Injection)
-      if (cityName) {
-        try {
-          // Convert "İstanbul" -> "istanbul" to match WP Tag Slug
-          const tagSlug = toSlug(cityName);
-
-          // Ask WP: "What is the ID for the tag 'istanbul'?"
-          const tagRes = await fetch(`/wp-json/wp/v2/tags?slug=${tagSlug}`);
-          const tags = await tagRes.json();
-
-          // If tag exists (e.g., ID 12), filter posts by this tag
-          if (Array.isArray(tags) && tags.length > 0) {
-            const tagId = tags[0].id;
-            endpoint += `&tags=${tagId}`;
-            // console.log(`[Sinan Bridge] Filtered by Tag: ${cityName} (ID: ${tagId})`);
+        if (Array.isArray(tags) && tags.length > 0) {
+          const tagId = tags[0].id;
+          // Fetch up to 3 specific posts
+          const specificRes = await fetch(`${baseEndpoint}&tags=${tagId}&per_page=3`);
+          if (specificRes.ok) {
+            specificPosts = await specificRes.json();
           }
-        } catch (err) {
-          // Silently fail back to general news if tag lookup fails
-          // console.warn("Tag lookup failed, showing general analysis.");
         }
-      }
-
-      // 2. FETCH CONTENT
-      const response = await fetch(endpoint);
-      if (!response.ok) throw new Error('WP API Failed');
-      const posts = await response.json();
-
-      // 3. MAP TO APP MODEL
-      return posts.map((post: any) => ({
-        id: post.id,
-        title: post.title.rendered,
-        link: post.link, // WordPress Permalink for SEO
-        image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/400/300?random=${post.id}`,
-        category: 'Meteorolojik Analiz', // Unified Label
-        date: new Date(post.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-      }));
-
-    } catch (e) {
-      console.warn("[Sinan Bridge] API Error:", e);
+      } catch (err) { /* Ignore tag errors */ }
     }
-  }
 
-  // Fallback Mock Data (Only if API fails completely)
-  return NEWS_DATA;
+    // 2. FETCH GENERAL (Always fetch to fill gaps)
+    // We exclude the specific posts IDs to avoid duplicates
+    let excludeParams = "";
+    if (specificPosts.length > 0) {
+      const excludeIds = specificPosts.map((p: any) => p.id).join(',');
+      excludeParams = `&exclude=${excludeIds}`;
+    }
+
+    // Fetch enough to fill the remaining slots (Target: 6 total)
+    const needed = 6 - specificPosts.length;
+    if (needed > 0) {
+      const generalRes = await fetch(`${baseEndpoint}${excludeParams}&per_page=${needed}`);
+      if (generalRes.ok) {
+        generalPosts = await generalRes.json();
+      }
+    }
+
+    // 3. MERGE
+    const allPosts = [...specificPosts, ...generalPosts];
+
+    // 4. MAP
+    return allPosts.map((post: any) => ({
+      id: post.id,
+      title: decodeHTMLEntities(post.title.rendered),
+      link: post.link,
+      image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/400/300?random=${post.id}`,
+      category: 'Meteorolojik Analiz',
+      date: new Date(post.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+      excerpt: post.excerpt?.rendered
+        ? decodeHTMLEntities(post.excerpt.rendered.replace(/(<([^>]+)>)/gi, "")).substring(0, 100) + "..."
+        : ""
+    }));
+
+  } catch (e) {
+    console.warn("[Sinan Bridge] Failed:", e);
+    return NEWS_DATA;
+  }
 };
 
 export const fetchLegalPage = async (slug: string): Promise<LegalContent | null> => {

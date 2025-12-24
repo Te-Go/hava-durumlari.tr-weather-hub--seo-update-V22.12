@@ -5,7 +5,8 @@ import {
   Flame, Bike, Fish, Sprout,
   Cloud, CloudSnow, CloudLightning, AlertTriangle, CloudFog, Snowflake,
   Gauge, Sunrise, FileText, Info, Clock, Calendar,
-  Activity, Heart, Shield, Car, Smile
+  Activity, Heart, Shield, Car, Smile,
+  Grid, ArrowRight, Coffee
 } from 'lucide-react';
 
 export const Icon = {
@@ -46,7 +47,10 @@ export const Icon = {
   Heart,
   Shield,
   Car,
-  Baby: Smile // Use Smile as Baby icon substitute
+  Baby: Smile, // Use Smile as Baby icon substitute
+  Grid,
+  ArrowRight,
+  Coffee
 };
 
 // --- PREMIUM 3D SVG ENGINE (ROBUST & ANIMATED) ---

@@ -20,6 +20,8 @@ import WeatherTriggeredAd from './components/WeatherTriggeredAd';
 import DesktopSidebarRight from './components/DesktopSidebarRight';
 import NewsSection from './components/NewsSection';
 import LazySection from './components/LazySection';
+import MobileNav from './components/MobileNav';
+import NetworkRibbon from './components/NetworkRibbon';
 
 type ViewState =
   | { type: 'home' }
@@ -63,58 +65,94 @@ interface AppProps {
   locationId?: number;
 }
 
-const App: React.FC<AppProps> = ({ locationId = 0 }) => {
-  // OPTIMIZED STATE INITIALIZATION
-  // We resolve the city synchronously to avoid a flash of default content (İstanbul) before the effect runs.
-  // This ensures the App mounts with the Server-Injected Context immediately.
-  const [currentCity, setCurrentCity] = useState<string>(() => {
-    // PRIORITY ORDER FOR CITY RESOLUTION:
-    // 1. URL Path (highest priority - user navigated directly to this URL)
-    // 2. locationId prop (WordPress server context)
-    // 3. localStorage (client persistence)
-    // 4. Default (İstanbul)
+// SINAN FIREWALL: Reserved paths that should NEVER be treated as cities
+const RESERVED_PATHS = [
+  'analiz', 'haberler', 'iletisim', 'hakkimizda',
+  'gizlilik-politikasi', 'kullanim-kosullari',
+  'wp-admin', 'wp-json', 'sitemap', 'feed', 'rss'
+];
 
-    // 1. URL Path Extraction (Client-side navigation & direct links)
-    // This takes priority because if the user navigated to /hava-durumu/ankara,
-    // they expect to see Ankara weather, regardless of any other context.
+const App: React.FC<AppProps> = ({ locationId = 0 }) => {
+
+  // BULLETPROOF HYDRATION LOGIC
+  const getInitialState = (): { city: string; view: 'home' | 'tomorrow' | 'weekend' } => {
+
+    // ⛔️ PRIORITY 1: Server Injection (The "Truth")
+    // If PHP (Asset Loader) injected the data object, use it.
+    if (typeof window !== 'undefined' && (window as any).INITIAL_WEATHER_DATA) {
+      return {
+        city: (window as any).INITIAL_WEATHER_DATA.city || 'İstanbul',
+        view: (window as any).INITIAL_WEATHER_DATA.view || 'home'
+      };
+    }
+
+    // ⚠️ PRIORITY 2: DOM Data Attributes (The "Bridge")
+    // If Shortcode rendered the container with data attributes.
+    if (typeof document !== 'undefined') {
+      const root = document.getElementById('weather-app');
+      if (root?.dataset.initialCity) {
+        return {
+          city: root.dataset.initialCity,
+          view: (root.dataset.initialView as 'home' | 'tomorrow' | 'weekend') || 'home'
+        };
+      }
+    }
+
+    // 🤠 PRIORITY 3: Client-Side URL Parsing (The "Wild West")
+    // Only runs if Server Injection failed or we are in pure SPA navigation.
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
-      const segments = path.split('/').filter(Boolean);
-      const citySlug = segments[segments.length - 1];
 
-      // URL pattern: /hava-durumu/{city-slug} or /{view}/{city-slug}
-      // Last segment is typically the city slug
-      if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
-        const city = fromSlug(citySlug);
-        if (city) {
-          return city;
+      // A. Strict Prefix Check (The Silo Protocol)
+      if (path.startsWith('/hava-durumu/')) {
+        const segments = path.split('/');
+        // ["", "hava-durumu", "istanbul", "yarin"]
+        //  0        1            2          3
+
+        // B. Index Correction (Sinan's Fix) - City is at [2]
+        const rawSlug = segments[2];
+
+        // C. Validation Gate
+        if (rawSlug && !RESERVED_PATHS.includes(rawSlug)) {
+          // Regex check for strict slug format (a-z, 0-9, -) - XSS protection
+          if (/^[a-z0-9-]+$/.test(rawSlug)) {
+
+            // D. View Detection
+            let view: 'home' | 'tomorrow' | 'weekend' = 'home';
+            if (path.includes('/yarin')) view = 'tomorrow';
+            else if (path.includes('/hafta-sonu')) view = 'weekend';
+
+            return { city: fromSlug(rawSlug), view };
+          }
         }
       }
     }
 
-    // 2. Server Context (WordPress locationId prop)
-    // Only used when URL doesn't specify a city
+    // 🏳️ PRIORITY 4: Server Context (WordPress locationId prop)
     if (locationId > 0) {
-      return getCityById(locationId);
+      return { city: getCityById(locationId), view: 'home' };
     }
 
-    // 3. Client Side Persistence (Fallback - localStorage)
+    // 🏳️ PRIORITY 5: Client Side Persistence (localStorage)
     if (typeof window !== 'undefined') {
       const prefs = getUserPreferences();
       if (prefs.lastCity) {
-        return prefs.lastCity;
+        return { city: prefs.lastCity, view: 'home' };
       }
     }
 
-    // 4. Default
-    return 'İstanbul';
-  });
+    // 🏳️ FALLBACK: Default State
+    return { city: 'İstanbul', view: 'home' };
+  };
 
+  // Initialize state from bulletproof hydration
+  const initialState = getInitialState();
+  const [currentCity, setCurrentCity] = useState<string>(initialState.city);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [marketData, setMarketData] = useState<MarketTicker[]>([]);
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<ViewState>({ type: 'home' });
+  const [view, setView] = useState<ViewState>({ type: initialState.view });
 
   // DEBUG: Log mount state
   useEffect(() => {
@@ -537,9 +575,11 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                 >
                   <NewsSection city={currentCity} />
                 </LazySection>
+                {/* LAUNCH PHASE: AdGrid (İlginizi Çekebilir) disabled for first 12 weeks. Reactivate after mid-March 2025
                 <LazySection>
                   <AdGrid />
                 </LazySection>
+                */}
               </div>
             )}
           </>
@@ -552,7 +592,10 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col font-sans text-slate-800 dark:text-slate-200 selection:bg-blue-200 selection:text-blue-900 transition-colors duration-500">
+        {/* LAUNCH PHASE: TopBar disabled for first 6 weeks. Reactivate after mid-February 2025
         <TopBar tickers={marketData} currentTemp={weatherData?.currentTemp} onHomeClick={() => setView({ type: 'home' })} position="top" />
+        */}
+        <NetworkRibbon />
 
         {/* Main Grid Layout - Mobile First with max-w-7xl (1280px) */}
         <div className="flex-grow w-full max-w-7xl mx-auto px-4 py-4 md:py-8 flex flex-col lg:flex-row gap-6 md:gap-8">
@@ -566,6 +609,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
           <aside className="hidden lg:block w-72 flex-shrink-0 order-2">
             <DesktopSidebarRight
               articles={articles}
+              city={currentCity}
             />
           </aside>
 
@@ -573,6 +617,16 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
         <Footer onNavigate={handleFooterNavigate} />
         <TopBar tickers={marketData} currentTemp={weatherData?.currentTemp} onHomeClick={() => setView({ type: 'home' })} position="bottom" />
+
+        {/* SINAN UPGRADE: Mobile App Navigation Bar */}
+        <MobileNav
+          activeView={view.type === 'cities' ? 'home' : view.type}
+          onToggleView={handleViewToggle}
+          onSearchClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        />
+
+        {/* Bottom padding spacer for mobile nav bar */}
+        <div className="h-20 md:hidden"></div>
 
         {/* Consent Banner Layer */}
         <CookieBanner />

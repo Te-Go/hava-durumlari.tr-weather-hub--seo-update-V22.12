@@ -58,6 +58,7 @@ export interface NewsItem {
   date: string;
   link: string; // URL for SEO navigation
   content?: string; // Content added back as optional
+  excerpt?: string; // SINAN: Short preview text from WP
 }
 
 export interface LegalContent {
