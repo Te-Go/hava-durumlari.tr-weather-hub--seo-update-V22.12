@@ -48,48 +48,62 @@ const NetworkRibbon: React.FC = () => {
 
             {/* Central Hub Navigation */}
             <nav className="flex items-center gap-6 sm:gap-8 md:gap-12 lg:gap-16" aria-label="Network Hubs">
-                {HUBS.map((hub) => (
-                    <a
-                        key={hub.id}
-                        href={hub.link}
-                        target={hub.active ? "_self" : "_blank"}
-                        rel={hub.active ? undefined : "noopener noreferrer nofollow sponsored"}
-                        title={`${hub.name} Verileri`}
-                        aria-current={hub.active ? "page" : undefined}
-                        className={`
-              group flex flex-col items-center justify-center gap-1 transition-all duration-300 ease-out
-              ${hub.active
-                                ? 'opacity-100 scale-100'
-                                : 'hover:scale-110'}
-            `}
-                    >
-                        {/* Logo Container - Clean, no rings */}
-                        <div className={`
+                {HUBS.map((hub) => {
+                    // LAUNCH PHASE: Only Weather hub is clickable, others are display-only
+                    const isClickable = hub.active;
+
+                    const content = (
+                        <>
+                            {/* Logo Container - Clean, no rings */}
+                            <div className={`
               relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden flex items-center justify-center
               transition-all duration-300
               ${hub.active
-                                ? 'shadow-lg shadow-white/30'
-                                : ''}
+                                    ? 'shadow-lg shadow-white/30'
+                                    : ''}
             `}>
-                            <img
-                                src={hub.logo}
-                                alt={hub.name}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                            />
-                        </div>
+                                <img
+                                    src={hub.logo}
+                                    alt={hub.name}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                />
+                            </div>
 
-                        {/* Label */}
-                        <span className={`
+                            {/* Label */}
+                            <span className={`
               text-[8px] sm:text-[9px] font-bold uppercase tracking-wider transition-colors duration-200
               ${hub.active
-                                ? 'text-white dark:text-blue-400'
-                                : 'text-slate-300 dark:text-slate-400 group-hover:text-white dark:group-hover:text-slate-200'}
+                                    ? 'text-white dark:text-blue-400'
+                                    : 'text-slate-300 dark:text-slate-400'}
             `}>
-                            {hub.name}
-                        </span>
-                    </a>
-                ))}
+                                {hub.name}
+                            </span>
+                        </>
+                    );
+
+                    // Active hub = clickable link, Inactive hubs = display-only div
+                    return isClickable ? (
+                        <a
+                            key={hub.id}
+                            href={hub.link}
+                            target="_self"
+                            title={`${hub.name} Verileri`}
+                            aria-current="page"
+                            className="group flex flex-col items-center justify-center gap-1 transition-all duration-300 ease-out opacity-100 scale-100"
+                        >
+                            {content}
+                        </a>
+                    ) : (
+                        <div
+                            key={hub.id}
+                            title={`${hub.name} - Çok Yakında`}
+                            className="group flex flex-col items-center justify-center gap-1 transition-all duration-300 ease-out cursor-default opacity-70"
+                        >
+                            {content}
+                        </div>
+                    );
+                })}
             </nav>
 
             {/* Brand Tag (Desktop Only) */}

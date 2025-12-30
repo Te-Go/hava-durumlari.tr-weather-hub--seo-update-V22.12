@@ -53,16 +53,15 @@ const TopBar: React.FC<TopBarProps> = ({ tickers, currentTemp, onHomeClick, posi
           </button>
         </div>
 
-        {/* Right Section: Tickers */}
+        {/* Right Section: Tickers - LAUNCH PHASE: Links disabled until hubs are ready */}
         <div className="flex items-center space-x-3">
           {tickers.map((ticker) => (
-            <a
+            <div
               key={ticker.symbol}
-              href={ticker.link || '#'}
+              // href={ticker.link || '#'} // DISABLED - Hubs not ready
               className={pillClass}
-              target="_blank" // Open in new tab to keep users on Weather Hub
-              rel="noopener noreferrer" // Security best practice
-              title={`${ticker.symbol} Detayları`}
+              title={`${ticker.symbol}`}
+              style={{ cursor: 'default' }}
             >
               {/* Logo Logic: Render Image if exists, else generic Icon */}
               {ticker.logoUrl ? (
@@ -89,7 +88,7 @@ const TopBar: React.FC<TopBarProps> = ({ tickers, currentTemp, onHomeClick, posi
               <span className={ticker.change >= 0 ? 'text-green-400' : 'text-red-400'}>
                 {ticker.change > 0 ? '↑' : '↓'} {Math.abs(ticker.change)}%
               </span>
-            </a>
+            </div>
           ))}
         </div>
       </div>

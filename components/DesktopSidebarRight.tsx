@@ -46,8 +46,9 @@ const DesktopSidebarRight: React.FC<DesktopSidebarRightProps> = ({ articles, cit
       {/* ═══════════════════════════════════════════════════════════════════
           SLOT 2: THE "RETENTION" ENGINE - NEWSLETTER/PUSH
           Storm alert newsletter signup with city personalization
+          LAUNCH PHASE: Disabled until backend is ready
          ═══════════════════════════════════════════════════════════════════ */}
-      <NewsletterWidget city={city} />
+      {/* <NewsletterWidget city={city} /> */}
 
       {/* ═══════════════════════════════════════════════════════════════════
           SLOT 3: THE "RECIRCULATION" MODULE - INTERNAL LINK

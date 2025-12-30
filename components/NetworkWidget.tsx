@@ -73,15 +73,15 @@ const NetworkWidget: React.FC<NetworkWidgetProps> = ({ marketData }) => {
                 </span>
             </div>
 
-            {/* Data Rows */}
+            {/* Data Rows - LAUNCH PHASE: Links disabled until hubs are ready */}
             <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-700/50">
                 {hubs.map((hub) => (
-                    <a
+                    <div
                         key={hub.id}
-                        href={hub.href}
-                        target="_blank"
-                        rel="noopener nofollow sponsored"
-                        className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
+                        // href={hub.href} // DISABLED - Hub not ready
+                        // target="_blank"
+                        // rel="noopener nofollow sponsored"
+                        className="flex items-center justify-between px-4 py-3 transition-colors group cursor-default"
                     >
                         <div className="flex items-center gap-3">
                             {/* Hub Logo */}
@@ -98,7 +98,7 @@ const NetworkWidget: React.FC<NetworkWidgetProps> = ({ marketData }) => {
                                 />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 transition-colors">
                                     {hub.name}
                                 </span>
                                 <span className="text-[10px] text-slate-400 dark:text-slate-500">
@@ -110,12 +110,9 @@ const NetworkWidget: React.FC<NetworkWidgetProps> = ({ marketData }) => {
                             <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
                                 {hub.value}
                             </span>
-                            <Icon.ChevronRight
-                                size={14}
-                                className="text-slate-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all"
-                            />
+                            {/* Arrow removed since not clickable */}
                         </div>
-                    </a>
+                    </div>
                 ))}
             </div>
         </div>
