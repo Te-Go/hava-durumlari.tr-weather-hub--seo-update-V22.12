@@ -69,16 +69,19 @@ const Navigation: React.FC<NavigationProps> = ({ currentCity, onCityChange, onLo
       {/* Top Row: Logo - Search - Toggle */}
       <div className="relative max-w-4xl mx-auto flex items-center gap-3">
 
-        {/* Logo (Left) */}
-        <div className="flex-shrink-0">
+        {/* Logo + Title (Left) - Stacked Vertically */}
+        <a href="/" className="flex-shrink-0 flex flex-col items-center group">
           <img
             src={HUB_LOGOS.WEATHER}
-            alt="Hava Durumlari Logo"
-            width="40"
-            height="40"
-            className="h-10 w-auto object-contain drop-shadow-sm filter dark:brightness-110"
+            alt="Hava Durumları Logo"
+            width="54"
+            height="54"
+            className="h-14 w-auto object-contain drop-shadow-sm filter dark:brightness-110 group-hover:scale-105 transition-transform"
           />
-        </div>
+          <span className="hidden sm:block text-xs font-bold text-slate-700 dark:text-white tracking-tight group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors -mt-0.5">
+            Hava Durumları
+          </span>
+        </a>
 
         {/* Omni-Search (Middle) */}
         <div className="relative flex-grow group">

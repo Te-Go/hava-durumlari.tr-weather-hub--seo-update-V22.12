@@ -30,7 +30,7 @@ export const HUB_LOGOS = {
   FX: CONFIG.logos?.FX || '/logos/logo-dolar.png',
   BOURSE: CONFIG.logos?.BOURSE || '/logos/logo-borsa.png',
   CRYPTO: CONFIG.logos?.CRYPTO || '/logos/logo-kripto.png',
-  WEATHER: CONFIG.logos?.WEATHER || 'https://cdn-icons-png.flaticon.com/512/1163/1163661.png'
+  WEATHER: CONFIG.logos?.WEATHER || '/logos/hava-durumlari-logo.png'
 };
 
 // --- CITY ID MAPPING (SEO Context) ---
@@ -521,7 +521,7 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
     high: daily.temperature_2m_max[0],
     low: daily.temperature_2m_min[0],
     windSpeed: current.wind_speed_10m,
-    windDirection: current.wind_direction_10m?.toString() || "N",
+    windDirection: current.wind_direction_10m?.toString() || "0", // 0 degrees = North
     rainVolume: current.precipitation || 0,
     rainProb: currentRainProb,
     humidity: current.relative_humidity_2m,
@@ -557,7 +557,7 @@ const getMockWeatherData = (city: string): WeatherData => {
     high: baseTemp + 4,
     low: baseTemp - 5,
     windSpeed: windSpeed,
-    windDirection: 'Kuzeydoğu',
+    windDirection: '45', // 45° = Kuzeydoğu (Northeast)
     rainVolume: 0,
     rainProb: 10,
     humidity: 50,
@@ -868,7 +868,7 @@ export const fetchLiveArticles = async (cityName?: string): Promise<NewsItem[]> 
       title: decodeHTMLEntities(post.title.rendered),
       link: post.link,
       image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/400/300?random=${post.id}`,
-      category: 'Meteorolojik Analiz',
+      category: 'Hava Durumu Makalesi',
       date: new Date(post.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
       excerpt: post.excerpt?.rendered
         ? decodeHTMLEntities(post.excerpt.rendered.replace(/(<([^>]+)>)/gi, "")).substring(0, 100) + "..."

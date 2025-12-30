@@ -42,7 +42,7 @@ const ArchivePage: React.FC<ArchivePageProps> = ({ articles, onArticleClick, onB
       </div>
 
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-light text-slate-800 dark:text-slate-200 mb-2">Meteorolojik Analizler</h1>
+        <h1 className="text-3xl font-light text-slate-800 dark:text-slate-200 mb-2">Hava Durumu Makaleleri</h1>
         <p className="text-slate-500 dark:text-slate-400">Güncel hava durumu gelişmeleri, analizler ve yaşam makaleleri.</p>
       </div>
 

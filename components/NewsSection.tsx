@@ -39,8 +39,8 @@ const NewsSection: React.FC<NewsSectionProps> = ({ city }) => {
     return (
         <GlassCard className="flex flex-col mt-6 mb-6">
             <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-4">
-                {/* Dynamic Header: "Ankara Meteorolojik Analizler" */}
-                {city ? `${city} Meteorolojik Analizler` : 'Meteorolojik Analizler'}
+                {/* Dynamic Header: "Ankara Hava Durumu Makaleleri" */}
+                {city ? `${city} Hava Durumu Makaleleri` : 'Hava Durumu Makaleleri'}
             </h3>
 
             {loading ? (
@@ -90,11 +90,11 @@ const NewsSection: React.FC<NewsSectionProps> = ({ city }) => {
                         {/* Button under featured article */}
                         {displayArticles.length > 0 && (
                             <a
-                                href="/analiz/"
+                                href="https://hava-durumlari.tr/meteorolojik-analiz/"
                                 className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-500 transition-all shadow-sm group"
                             >
                                 <Icon.Grid size={16} />
-                                Tüm Meteorolojik Analizleri İncele
+                                Tüm Hava Durumu Makalelerini İncele
                                 <Icon.ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                             </a>
                         )}

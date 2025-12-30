@@ -23,7 +23,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <h4 className="text-white font-bold mb-4">Hakkımızda</h4>
           <ul className="space-y-2">
             <li><a href="/" onClick={(e) => handleLinkClick(e, 'home')} className="hover:text-white transition-colors">Hava Durumları</a></li>
-            <li><a href="/iletisim" className="hover:text-white transition-colors">İletişim</a></li>
+            <li><a href="/iletisim/" className="hover:text-white transition-colors">İletişim</a></li>
           </ul>
         </div>
 
@@ -34,9 +34,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <li><a href="/yarin" onClick={(e) => handleLinkClick(e, 'tomorrow')} className="hover:text-white transition-colors text-blue-400 font-semibold">Yarınki Hava Durumu</a></li>
             <li><a href="/hafta-sonu" onClick={(e) => handleLinkClick(e, 'weekend')} className="hover:text-white transition-colors text-indigo-400 font-semibold">Bu Hafta Sonu</a></li>
             {/* SEO Links for Content */}
-            <li><a href="/kategori/makaleler" className="hover:text-white transition-colors">Makaleler</a></li>
-            <li><a href="/kategori/hava-analizleri" className="hover:text-white transition-colors">Hava Analizleri</a></li>
-            <li><a href="/kategori/haberler" className="hover:text-white transition-colors">Gündem</a></li>
+            <li><a href="/hava-durumu-makaleleri/" className="hover:text-white transition-colors">Hava Durumu Makaleleri</a></li>
           </ul>
         </div>
 
@@ -65,11 +63,10 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div>
           <h4 className="text-white font-bold mb-4">Yasal</h4>
           <ul className="space-y-2">
-            <li><a href="/yasal/kullanim-kosullari" className="hover:text-white transition-colors">Kullanım Koşulları</a></li>
-            <li><a href="/yasal/gizlilik-politikasi" className="hover:text-white transition-colors">Gizlilik Politikası</a></li>
-            <li><a href="/yasal/cerez-politikasi" className="hover:text-white transition-colors">Çerez Politikası</a></li>
-            <li><a href="/yasal/kvkk" className="hover:text-white transition-colors">KVKK Aydınlatma Metni</a></li>
-            <li><a href="/yasal/kunye" className="hover:text-white transition-colors">Künye</a></li>
+            <li><a href="/kullanim-kosullari/" className="hover:text-white transition-colors">Kullanım Koşulları</a></li>
+            <li><a href="/gizlilik-politikasi/" className="hover:text-white transition-colors">Gizlilik Politikası</a></li>
+            <li><a href="/cerez-politikasi/" className="hover:text-white transition-colors">Çerez Politikası</a></li>
+            <li><a href="/kvkk-aydinlatma-metni/" className="hover:text-white transition-colors">KVKK Aydınlatma Metni</a></li>
           </ul>
 
           <div className="mt-8 text-[10px] opacity-40">
