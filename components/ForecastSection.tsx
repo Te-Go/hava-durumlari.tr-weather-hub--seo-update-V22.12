@@ -5,6 +5,7 @@ import GlassCard from './GlassCard';
 import { Icon } from './Icons';
 import { CONFIG } from '../services/weatherService';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart } from 'recharts';
+import DailyForecastChart from './DailyForecastChart';
 
 // Type for selected metric in drawer
 type MetricType = 'feelsLike' | 'uv' | 'humidity' | null;
@@ -222,7 +223,7 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
 
             <div className="max-h-none md:max-h-[500px] overflow-y-visible md:overflow-y-auto custom-scrollbar divide-y divide-blue-50 dark:divide-slate-700 relative pb-4">
               {data.daily.map((day) => (
-                <div key={day.day} className={`group transition-colors ${expandedDay === day.day ? 'bg-blue-100/60 dark:bg-slate-700/30' : ''}`}>
+                <div key={`${day.day}-${day.date}`} className={`group transition-colors ${expandedDay === day.day ? 'bg-blue-100/60 dark:bg-slate-700/30' : ''}`}>
                   <button onClick={() => toggleDay(day.day)} className="w-full flex items-center justify-between p-4 bg-slate-50/60 hover:bg-slate-100 dark:bg-transparent dark:hover:bg-slate-800/40 transition-colors min-h-[64px] border-b border-slate-100 dark:border-transparent">
                     {/* Column 1: Day + Date */}
                     <div className="flex items-center min-w-[100px]">
@@ -377,6 +378,9 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
           </div>
         </div>
       </div>
+
+      {/* 15-Day Chart and Trend Analysis */}
+      <DailyForecastChart dailyData={data.daily} cityName={data.city} />
     </div>
   );
 };

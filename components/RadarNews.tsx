@@ -39,6 +39,7 @@ const RadarNews: React.FC<RadarNewsProps> = ({ articles, weatherData, compact = 
 
         <div className="relative flex-grow min-h-[280px] w-full">
           <iframe
+            key={`radar-compact-${lat.toFixed(2)}-${lon.toFixed(2)}`}
             width="100%"
             height="100%"
             src={embedUrl}
@@ -67,6 +68,7 @@ const RadarNews: React.FC<RadarNewsProps> = ({ articles, weatherData, compact = 
 
         <div className="relative flex-grow min-h-[300px] w-full h-full">
           <iframe
+            key={`radar-full-${lat.toFixed(2)}-${lon.toFixed(2)}`}
             width="100%"
             height="100%"
             src={embedUrl}

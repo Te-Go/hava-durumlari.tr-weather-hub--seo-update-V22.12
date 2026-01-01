@@ -193,6 +193,36 @@ const fetchGeocoding = async (city: string) => {
   return null;
 };
 
+// --- GEOCODING SEARCH (Multiple Results for Disambiguation) ---
+export interface GeoSearchResult {
+  name: string;
+  admin1: string; // Province/region
+  lat: number;
+  lon: number;
+  country: string;
+}
+
+export const searchLocations = async (query: string): Promise<GeoSearchResult[]> => {
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=tr&format=json`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.results && data.results.length > 0) {
+      // Filter to Turkey only for this app
+      return data.results
+        .filter((r: { country_code: string }) => r.country_code === 'TR')
+        .map((r: { name: string; admin1?: string; latitude: number; longitude: number; country: string }) => ({
+          name: r.name,
+          admin1: r.admin1 || '',
+          lat: r.latitude,
+          lon: r.longitude,
+          country: r.country
+        }));
+    }
+  } catch (e) { console.error('Geocoding search error:', e); }
+  return [];
+};
+
 // --- REVERSE GEOCODING (Enhanced with fallbacks) ---
 // Returns the best available locality name for given coordinates
 export const getCityFromCoords = async (lat: number, lon: number): Promise<string> => {
@@ -513,6 +543,7 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
 
   return {
     city: city,
+    // API response contains accurate coordinates from geocoding
     coord: { lat: data.latitude, lon: data.longitude },
     currentTemp: current.temperature_2m,
     condition: WMO_TRANSLATION[current.weather_code] || "Hava Durumu",
@@ -539,6 +570,114 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
 
 const random = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1) + min);
 
+// SINAN PROTOCOL: Turkish City Coordinates Lookup
+// Used for mock data and radar positioning
+const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
+  // Top 10 Major Cities
+  'istanbul': { lat: 41.0082, lon: 28.9784 },
+  'İstanbul': { lat: 41.0082, lon: 28.9784 },
+  'ankara': { lat: 39.9334, lon: 32.8597 },
+  'Ankara': { lat: 39.9334, lon: 32.8597 },
+  'izmir': { lat: 38.4192, lon: 27.1287 },
+  'İzmir': { lat: 38.4192, lon: 27.1287 },
+  'bursa': { lat: 40.1885, lon: 29.0610 },
+  'Bursa': { lat: 40.1885, lon: 29.0610 },
+  'antalya': { lat: 36.8969, lon: 30.7133 },
+  'Antalya': { lat: 36.8969, lon: 30.7133 },
+  'adana': { lat: 37.0000, lon: 35.3213 },
+  'Adana': { lat: 37.0000, lon: 35.3213 },
+  'konya': { lat: 37.8746, lon: 32.4932 },
+  'Konya': { lat: 37.8746, lon: 32.4932 },
+  'gaziantep': { lat: 37.0662, lon: 37.3833 },
+  'Gaziantep': { lat: 37.0662, lon: 37.3833 },
+  'mersin': { lat: 36.8121, lon: 34.6415 },
+  'Mersin': { lat: 36.8121, lon: 34.6415 },
+  'diyarbakır': { lat: 37.9144, lon: 40.2306 },
+  'Diyarbakır': { lat: 37.9144, lon: 40.2306 },
+  // Additional Popular Cities
+  'kayseri': { lat: 38.7312, lon: 35.4787 },
+  'Kayseri': { lat: 38.7312, lon: 35.4787 },
+  'eskişehir': { lat: 39.7767, lon: 30.5206 },
+  'Eskişehir': { lat: 39.7767, lon: 30.5206 },
+  'samsun': { lat: 41.2928, lon: 36.3313 },
+  'Samsun': { lat: 41.2928, lon: 36.3313 },
+  'trabzon': { lat: 41.0027, lon: 39.7168 },
+  'Trabzon': { lat: 41.0027, lon: 39.7168 },
+  'denizli': { lat: 37.7765, lon: 29.0864 },
+  'Denizli': { lat: 37.7765, lon: 29.0864 },
+  'malatya': { lat: 38.3552, lon: 38.3095 },
+  'Malatya': { lat: 38.3552, lon: 38.3095 },
+  'erzurum': { lat: 39.9055, lon: 41.2658 },
+  'Erzurum': { lat: 39.9055, lon: 41.2658 },
+  'van': { lat: 38.5012, lon: 43.4089 },
+  'Van': { lat: 38.5012, lon: 43.4089 },
+  'muğla': { lat: 37.2153, lon: 28.3636 },
+  'Muğla': { lat: 37.2153, lon: 28.3636 },
+  'bodrum': { lat: 37.0344, lon: 27.4305 },
+  'Bodrum': { lat: 37.0344, lon: 27.4305 },
+  'fethiye': { lat: 36.6538, lon: 29.1236 },
+  'Fethiye': { lat: 36.6538, lon: 29.1236 },
+  'kuşadası': { lat: 37.8579, lon: 27.2610 },
+  'Kuşadası': { lat: 37.8579, lon: 27.2610 },
+  'marmaris': { lat: 36.8550, lon: 28.2742 },
+  'Marmaris': { lat: 36.8550, lon: 28.2742 },
+  'alanya': { lat: 36.5437, lon: 31.9994 },
+  'Alanya': { lat: 36.5437, lon: 31.9994 },
+  // Black Sea
+  'rize': { lat: 41.0208, lon: 40.5178 },
+  'Rize': { lat: 41.0208, lon: 40.5178 },
+  'ordu': { lat: 40.9862, lon: 37.8797 },
+  'Ordu': { lat: 40.9862, lon: 37.8797 },
+  'giresun': { lat: 40.9128, lon: 38.3895 },
+  'Giresun': { lat: 40.9128, lon: 38.3895 },
+  // Marmara
+  'edirne': { lat: 41.6818, lon: 26.5623 },
+  'Edirne': { lat: 41.6818, lon: 26.5623 },
+  'çanakkale': { lat: 40.1553, lon: 26.4142 },
+  'Çanakkale': { lat: 40.1553, lon: 26.4142 },
+  'kocaeli': { lat: 40.8533, lon: 29.8815 },
+  'Kocaeli': { lat: 40.8533, lon: 29.8815 },
+  'sakarya': { lat: 40.7569, lon: 30.3781 },
+  'Sakarya': { lat: 40.7569, lon: 30.3781 },
+  // Aegean
+  'aydın': { lat: 37.8560, lon: 27.8416 },
+  'Aydın': { lat: 37.8560, lon: 27.8416 },
+  'manisa': { lat: 38.6191, lon: 27.4289 },
+  'Manisa': { lat: 38.6191, lon: 27.4289 },
+  // Central Anatolia
+  'afyon': { lat: 38.7507, lon: 30.5567 },
+  'Afyon': { lat: 38.7507, lon: 30.5567 },
+  'nevşehir': { lat: 38.6250, lon: 34.7239 },
+  'Nevşehir': { lat: 38.6250, lon: 34.7239 },
+  'kapadokya': { lat: 38.6431, lon: 34.8289 },
+  'Kapadokya': { lat: 38.6431, lon: 34.8289 },
+  // Resort Towns (Hub Support)
+  'belek': { lat: 36.8625, lon: 31.0556 },
+  'Belek': { lat: 36.8625, lon: 31.0556 },
+  'çeşme': { lat: 38.3233, lon: 26.3042 },
+  'Çeşme': { lat: 38.3233, lon: 26.3042 },
+  'kemer': { lat: 36.5962, lon: 30.5602 },
+  'Kemer': { lat: 36.5962, lon: 30.5602 },
+  'kaş': { lat: 36.2018, lon: 29.6377 },
+  'Kaş': { lat: 36.2018, lon: 29.6377 },
+};
+
+// Helper to get coordinates for a city (with fallback to Turkey center)
+const getCityCoords = (city: string): { lat: number; lon: number } => {
+  // Try exact match first
+  if (CITY_COORDS[city]) return CITY_COORDS[city];
+  // Try lowercase
+  const lower = city.toLowerCase();
+  if (CITY_COORDS[lower]) return CITY_COORDS[lower];
+  // Try slug-based lookup
+  const slug = toSlug(city);
+  for (const [key, coords] of Object.entries(CITY_COORDS)) {
+    if (toSlug(key) === slug) return coords;
+  }
+  // Fallback to Turkey center
+  return { lat: 39.0, lon: 35.5 };
+};
+
 const getMockWeatherData = (city: string): WeatherData => {
   const baseTemp = 18;
   const days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -547,9 +686,12 @@ const getMockWeatherData = (city: string): WeatherData => {
   // Use a fixed recent date or just new Date()
   const simulationStartDate = new Date(2025, 11, 5, 8, 0, 0);
 
+  // Get city-specific coordinates for radar positioning
+  const coords = getCityCoords(city);
+
   return {
     city,
-    coord: { lat: 39, lon: 32 },
+    coord: coords, // Use city-specific coordinates for radar positioning
     currentTemp: baseTemp,
     condition: 'Güneşli (Mock)',
     icon: 'sunny',
@@ -609,21 +751,98 @@ export const getWeatherData = async (city: string): Promise<WeatherData> => {
     finalCityName = CONFIG.preloadedGeo.city;
   }
 
-  // SINAN PROTOCOL: Use WordPress Proxy
-  try {
-    // We send the slug (e.g., 'istanbul') to our WP backend
-    const proxyUrl = `/wp-json/sinan/v1/weather?city=${toSlug(finalCityName)}`;
+  // 2. Resolve coordinates EARLY (before any API calls)
+  // Priority: localStorage (from disambiguation) > static lookup > null (use API coords)
+  const slug = toSlug(finalCityName);
+  let resolvedCoords: { lat: number; lon: number } | null = null;
 
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error('WP Proxy Failed');
+  // Priority 1: Check localStorage for user-selected coordinates (from disambiguation page)
+  const storedGeo = localStorage.getItem(`geo_${slug}`);
+  if (storedGeo) {
+    try {
+      const geoData = JSON.parse(storedGeo);
+      // Only use if stored within last 24 hours
+      if (geoData.lat && geoData.lon && Date.now() - geoData.timestamp < 86400000) {
+        resolvedCoords = { lat: geoData.lat, lon: geoData.lon };
+        console.log(`📍 Using stored geo for "${finalCityName}": (${resolvedCoords.lat}, ${resolvedCoords.lon}) from ${geoData.admin1 || 'disambiguation'}`);
+      }
+    } catch { /* ignore parse errors */ }
+  }
+
+  // Priority 2: Static lookup for known cities
+  if (!resolvedCoords) {
+    const lookupCoords = getCityCoords(finalCityName);
+    // Only use if not Turkey center default
+    if (lookupCoords.lat !== 39.0 || lookupCoords.lon !== 35.5) {
+      resolvedCoords = lookupCoords;
+      console.log(`📍 Static lookup for "${finalCityName}": (${resolvedCoords.lat}, ${resolvedCoords.lon})`);
+    }
+  }
+
+  // SINAN PROTOCOL: Cascading Fallback Chain
+  // 1. Try WordPress Proxy (production with caching)
+  // 2. Try Direct Open-Meteo API (dev/fallback)
+  // 3. Use Mock Data (offline/error)
+
+  // FALLBACK 1: WordPress Proxy (PRODUCTION ONLY)
+  // In dev mode, skip the proxy to ensure real API data is used
+  if (getConfig().isProduction) {
+    try {
+      const proxyUrl = `/wp-json/sinan/v1/weather?city=${toSlug(finalCityName)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error('WP Proxy Failed');
+
+      const data = await response.json();
+
+      // Override API coordinates with resolved coords if available
+      if (resolvedCoords) {
+        data.latitude = resolvedCoords.lat;
+        data.longitude = resolvedCoords.lon;
+        console.log(`📍 Overriding proxy coords with resolved: (${resolvedCoords.lat}, ${resolvedCoords.lon})`);
+      }
+
+      return mapOpenMeteoToModel(finalCityName, data);
+
+    } catch (e) {
+      console.warn("WP Proxy Failed, trying direct Open-Meteo API...");
+    }
+  } else {
+    console.log("🔧 [DEV MODE] Skipping WP Proxy, going direct to Open-Meteo API...");
+  }
+
+  // FALLBACK 2: Direct Open-Meteo API with city coordinates
+  try {
+    // Use already-resolved coords, or fall back to dynamic geocoding
+    let coords = resolvedCoords || { lat: 0, lon: 0 };
+
+    // If no coords resolved yet, try dynamic geocoding API
+    if (coords.lat === 0 && coords.lon === 0) {
+      const geoResult = await fetchGeocoding(finalCityName);
+      if (geoResult) {
+        coords = { lat: geoResult.lat, lon: geoResult.lon };
+        console.log(`📍 Geocoded "${finalCityName}" to (${coords.lat}, ${coords.lon})`);
+      } else {
+        // Last resort: Turkey center
+        coords = { lat: 39.0, lon: 35.5 };
+        console.warn(`⚠️ Geocoding failed for "${finalCityName}", using Turkey center`);
+      }
+    }
+
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&forecast_hours=168&timezone=auto`;
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Open-Meteo API Failed');
 
     const data = await response.json();
+    console.log(`✓ Open-Meteo direct fetch success for ${finalCityName} (${coords.lat}, ${coords.lon})`);
     return mapOpenMeteoToModel(finalCityName, data);
 
   } catch (e) {
-    console.warn("Proxy Failed, using Mock Data");
-    return getMockWeatherData(finalCityName);
+    console.warn("Direct Open-Meteo failed, using Mock Data", e);
   }
+
+  // FALLBACK 3: Mock Data
+  return getMockWeatherData(finalCityName);
 };
 
 export const transformToTomorrow = (data: WeatherData): WeatherData => {

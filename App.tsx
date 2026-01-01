@@ -22,12 +22,33 @@ import NewsSection from './components/NewsSection';
 import LazySection from './components/LazySection';
 import MobileNav from './components/MobileNav';
 import NetworkRibbon from './components/NetworkRibbon';
+import LocationSearchPage from './components/LocationSearchPage';
+import IslandDemo from './components/IslandDemo';
+
+// Islands & Services
+import { IslandPanel } from './islands';
+import { fetchMarineData, isCoastalCity, type MarineData } from './services/marineService';
+import { fetchTrafficData, hasTrafficMonitoring, type TomTomTrafficData } from './services/tomtomTrafficService';
+import { calculateSkiConditions, hasSkiResort, type SkiData } from './services/skiService';
+import { findNearestHub } from './services/locationUtils'; // Hub & Spoke Logic
+
+// New Island Services
+import { fetchAgricultureData, isAgricultureRegion, type AgricultureData } from './services/agricultureService';
+import { calculateAltitudeData, isAltitudeRegion, getProvinceElevation, type AltitudeData } from './services/altitudeService';
+import { calculateFireRisk, isFireRiskRegion, shouldShowFireRisk, type FireRiskData } from './services/fireRiskService';
+import { calculateTourismComfort, isTourismRegion, type TourismData } from './services/tourismService';
+import { getIslandCategory } from './shared/provinceIslandMap';
+
+// TomTom API Key
+const TOMTOM_API_KEY = 'qUlGJOObY34eaqSXZto9H0OVWfGYqhP5';
 
 type ViewState =
   | { type: 'home' }
   | { type: 'tomorrow' }
   | { type: 'weekend' }
-  | { type: 'cities' };
+  | { type: 'cities' }
+  | { type: 'location-search' }
+  | { type: 'island-demo' };
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -69,7 +90,9 @@ interface AppProps {
 const RESERVED_PATHS = [
   'analiz', 'haberler', 'iletisim', 'hakkimizda',
   'gizlilik-politikasi', 'kullanim-kosullari',
-  'wp-admin', 'wp-json', 'sitemap', 'feed', 'rss'
+  'wp-admin', 'wp-json', 'sitemap', 'feed', 'rss',
+  'konum-ara', // Location search disambiguation page
+  'island-demo' // Island components development demo
 ];
 
 const App: React.FC<AppProps> = ({ locationId = 0 }) => {
@@ -153,6 +176,19 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewState>({ type: initialState.view });
+
+  // Island Data State
+  const [marineData, setMarineData] = useState<MarineData | null>(null);
+  const [marineCityDisplay, setMarineCityDisplay] = useState<string | undefined>(undefined);
+  const [trafficData, setTrafficData] = useState<TomTomTrafficData | null>(null);
+  const [trafficCityDisplay, setTrafficCityDisplay] = useState<string | undefined>(undefined);
+  const [skiData, setSkiData] = useState<SkiData | null>(null);
+
+  // New Island Data State
+  const [agricultureData, setAgricultureData] = useState<AgricultureData | null>(null);
+  const [altitudeData, setAltitudeData] = useState<AltitudeData | null>(null);
+  const [fireRiskData, setFireRiskData] = useState<FireRiskData | null>(null);
+  const [tourismData, setTourismData] = useState<TourismData | null>(null);
 
   // DEBUG: Log mount state
   useEffect(() => {
@@ -273,6 +309,18 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     const segments = path.split('/').filter(Boolean);
     // Silo structure: [0]=hava-durumu, [1]=city, [2]=view
 
+    // Route: /konum-ara - Location Search Page
+    if (path.startsWith('/konum-ara')) {
+      setView({ type: 'location-search' });
+      return; // Early exit - don't process further
+    }
+
+    // Route: /island-demo - Island Components Demo
+    if (path.startsWith('/island-demo')) {
+      setView({ type: 'island-demo' });
+      return; // Early exit - don't process further
+    }
+
     // Check for view in segment[2] or legacy paths
     const viewSegment = segments[2] || '';
     if (gunParam === 'yarin' || viewSegment === 'yarin' || path.includes('/yarin')) setView({ type: 'tomorrow' });
@@ -383,6 +431,116 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
         if (isMounted && !abortController.signal.aborted) {
           if (wData?.daily && wData?.hourly) {
             setWeatherData(wData);
+
+            // SINAN FETCH ISLANDS
+            const citySlug = toSlug(currentCity);
+
+            // 1. Reset islands
+            setMarineData(null);
+            setTrafficData(null);
+            setSkiData(null);
+            setAgricultureData(null);
+            setAltitudeData(null);
+            setFireRiskData(null);
+            setTourismData(null);
+
+            // 2. Traffic (Metro or Hub) - Now covers 29 cities
+            if (hasTrafficMonitoring(citySlug)) {
+              fetchTrafficData(citySlug, TOMTOM_API_KEY).then(data => {
+                if (isMounted) {
+                  setTrafficData(data);
+                  setTrafficCityDisplay(undefined); // Local
+                }
+              }).catch(err => console.error("Traffic Fetch Error", err));
+            } else {
+              // Check for Regional Hub Traffic
+              const hub = findNearestHub(wData.coord?.lat || 0, wData.coord?.lon || 0, 'traffic');
+              if (hub) {
+                fetchTrafficData(hub.hub.id, TOMTOM_API_KEY).then(data => {
+                  if (isMounted) {
+                    setTrafficData(data);
+                    setTrafficCityDisplay(`${hub.hub.name} Bölgesi`);
+                  }
+                }).catch(err => console.error("Regional Traffic Fetch Error", err));
+              }
+            }
+
+            // 3. Marine (Coastal or Hub)
+            if (isCoastalCity(citySlug)) {
+              fetchMarineData(citySlug).then(data => {
+                if (isMounted) {
+                  setMarineData(data);
+                  setMarineCityDisplay(undefined);
+                }
+              }).catch(err => console.error("Marine Fetch Error", err));
+            } else {
+              // Check for Regional Hub Marine
+              const hub = findNearestHub(wData.coord?.lat || 0, wData.coord?.lon || 0, 'marine');
+              if (hub) {
+                fetchMarineData(hub.hub.id).then(data => {
+                  if (isMounted) {
+                    setMarineData(data);
+                    setMarineCityDisplay(`${hub.hub.name} Bölgesi`);
+                  }
+                }).catch(err => console.error("Regional Marine Fetch Error", err));
+              }
+            }
+
+            // 4. Ski (Mountain)
+            if (hasSkiResort(citySlug)) {
+              import('./services/weatherUnlockedSkiService').then(({ fetchWeatherUnlockedSki }) => {
+                fetchWeatherUnlockedSki(citySlug).then(data => {
+                  if (isMounted && data) setSkiData(data);
+                }).catch(err => console.error("Ski Fetch Error", err));
+              });
+            }
+
+            // 5-8. New Island Categories
+            // Primary category determines the "main" extended island
+            // BUT tourism is ALSO loaded if city is in HISTORICAL_SITES (for coastal/metro hotspots)
+            const islandCategory = getIslandCategory(currentCity);
+            const primaryCategory = islandCategory.primary;
+
+            // Load primary extended category
+            if (primaryCategory === 'agriculture') {
+              fetchAgricultureData(wData.coord?.lat || 39, wData.coord?.lon || 35).then(data => {
+                if (isMounted && data) setAgricultureData(data);
+              }).catch(err => console.error("Agriculture Fetch Error", err));
+            } else if (primaryCategory === 'altitude') {
+              const elevation = getProvinceElevation(currentCity);
+              const altData = calculateAltitudeData(
+                elevation,
+                wData.temp,
+                wData.feelsLike,
+                wData.daily.map(d => d.tempLow),
+                wData.windSpeed,
+                wData.hourly[0]?.precipitation || 0
+              );
+              if (isMounted) setAltitudeData(altData);
+            } else if (primaryCategory === 'fireRisk') {
+              if (shouldShowFireRisk()) {
+                const precipSum = wData.daily.slice(0, 7).reduce((sum, d) => sum + (d.precipitation || 0), 0);
+                const fireData = calculateFireRisk(
+                  wData.humidity,
+                  wData.windSpeed,
+                  wData.temp,
+                  precipSum
+                );
+                if (isMounted) setFireRiskData(fireData);
+              }
+            }
+
+            // ALWAYS load Tourism if city is a tourism hotspot (regardless of primary category)
+            // This allows Istanbul, Antalya, Muğla etc. to show BOTH Traffic/Marine AND Tourism
+            if (isTourismRegion(currentCity)) {
+              const tourData = calculateTourismComfort(
+                wData.temp,
+                wData.humidity,
+                wData.hourly[0]?.uvIndex || 5,
+                currentCity
+              );
+              if (isMounted) setTourismData(tourData);
+            }
           } else {
             setWeatherData(null);
           }
@@ -551,6 +709,24 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                   showDailySummary={true}
                   className="mb-8"
                 />
+
+                {/* SINAN ISLANDS: Unified Contextual Widget Panel */}
+                <div className="mb-8 animate-fadeIn delay-100">
+                  <IslandPanel
+                    traffic={trafficData}
+                    marine={marineData}
+                    ski={skiData}
+                    agriculture={agricultureData}
+                    altitude={altitudeData}
+                    fireRisk={fireRiskData}
+                    tourism={tourismData}
+                    cityDisplay={currentCity}
+                    trafficCityDisplay={trafficCityDisplay}
+                    marineCityDisplay={marineCityDisplay}
+                    fallbackNarrative={generateWeatherCommentary(displayData, view.type === 'tomorrow' ? 'tomorrow' : view.type === 'weekend' ? 'weekend' : 'today').answerBlock}
+                    showNarration={true}
+                  />
+                </div>
                 {/* Side-by-side: Lifestyle (left 50%) + Radar (right 50%) on desktop */}
                 <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6">
                   <div className="w-full md:w-1/2">
@@ -584,6 +760,10 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
             )}
           </>
         );
+      case 'location-search':
+        return <LocationSearchPage />;
+      case 'island-demo':
+        return <IslandDemo />;
       case 'cities': return <CityIndex onCityClick={(city) => { setCurrentCity(city); setView({ type: 'home' }); window.history.pushState({ city }, '', `/${toSlug(city)}`); window.scrollTo(0, 0); }} onBack={() => setView({ type: 'home' })} />;
       default: return null;
     }

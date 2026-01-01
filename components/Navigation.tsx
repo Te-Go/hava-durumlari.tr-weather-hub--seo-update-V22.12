@@ -39,9 +39,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentCity, onCityChange, onLo
       const val = e.currentTarget.value.trim();
       if (val.length > 2) {
         trackEvent('search_city', 'navigation', val);
-        // Navigate to WordPress micropage URL with view context preserved
-        const viewParam = activeView === 'tomorrow' ? '?gun=yarin' : (activeView === 'weekend' ? '?gun=hafta-sonu' : '');
-        window.location.href = `/hava-durumu/${toSlug(val)}${viewParam}`;
+        // Redirect to disambiguation/search page for proper geocoding validation
+        const viewParam = activeView === 'tomorrow' ? '&gun=yarin' : (activeView === 'weekend' ? '&gun=hafta-sonu' : '');
+        window.location.href = `/konum-ara?q=${encodeURIComponent(val)}${viewParam}`;
       }
     }
   };
