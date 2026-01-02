@@ -24,6 +24,7 @@ import MobileNav from './components/MobileNav';
 import NetworkRibbon from './components/NetworkRibbon';
 import LocationSearchPage from './components/LocationSearchPage';
 import IslandDemo from './components/IslandDemo';
+import SeaTempPage from './components/SeaTempPage';
 
 // Islands & Services
 import { IslandPanel } from './islands';
@@ -48,7 +49,8 @@ type ViewState =
   | { type: 'weekend' }
   | { type: 'cities' }
   | { type: 'location-search' }
-  | { type: 'island-demo' };
+  | { type: 'island-demo' }
+  | { type: 'sea-temp' };
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -92,7 +94,8 @@ const RESERVED_PATHS = [
   'gizlilik-politikasi', 'kullanim-kosullari',
   'wp-admin', 'wp-json', 'sitemap', 'feed', 'rss',
   'konum-ara', // Location search disambiguation page
-  'island-demo' // Island components development demo
+  'island-demo', // Island components development demo
+  'deniz-suyu-sicakligi' // Sea temperature page
 ];
 
 const App: React.FC<AppProps> = ({ locationId = 0 }) => {
@@ -321,6 +324,12 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
       return; // Early exit - don't process further
     }
 
+    // Route: /deniz-suyu-sicakligi - Sea Temperature Page
+    if (path.startsWith('/deniz-suyu-sicakligi')) {
+      setView({ type: 'sea-temp' });
+      return; // Early exit - don't process further
+    }
+
     // Check for view in segment[2] or legacy paths
     const viewSegment = segments[2] || '';
     if (gunParam === 'yarin' || viewSegment === 'yarin' || path.includes('/yarin')) setView({ type: 'tomorrow' });
@@ -497,9 +506,10 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
             // 5-8. New Island Categories
             // Primary category determines the "main" extended island
-            // BUT tourism is ALSO loaded if city is in HISTORICAL_SITES (for coastal/metro hotspots)
+            // Secondary categories are ALSO loaded if applicable
             const islandCategory = getIslandCategory(currentCity);
             const primaryCategory = islandCategory.primary;
+            const secondaryCategory = islandCategory.secondary;
 
             // Load primary extended category
             if (primaryCategory === 'agriculture') {
@@ -528,6 +538,13 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                 );
                 if (isMounted) setFireRiskData(fireData);
               }
+            }
+
+            // ALSO load Agriculture if it's the secondary category (e.g., Konya, Ankara)
+            if (secondaryCategory === 'agriculture' && primaryCategory !== 'agriculture') {
+              fetchAgricultureData(wData.coord?.lat || 39, wData.coord?.lon || 35).then(data => {
+                if (isMounted && data) setAgricultureData(data);
+              }).catch(err => console.error("Secondary Agriculture Fetch Error", err));
             }
 
             // ALWAYS load Tourism if city is a tourism hotspot (regardless of primary category)
@@ -764,6 +781,8 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
         return <LocationSearchPage />;
       case 'island-demo':
         return <IslandDemo />;
+      case 'sea-temp':
+        return <SeaTempPage onCityChange={handleCityChange} />;
       case 'cities': return <CityIndex onCityClick={(city) => { setCurrentCity(city); setView({ type: 'home' }); window.history.pushState({ city }, '', `/${toSlug(city)}`); window.scrollTo(0, 0); }} onBack={() => setView({ type: 'home' })} />;
       default: return null;
     }

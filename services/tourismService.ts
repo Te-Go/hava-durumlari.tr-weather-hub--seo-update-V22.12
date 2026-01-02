@@ -112,9 +112,14 @@ export function calculateTourismComfort(
     cityName: string
 ): TourismData {
     // Defensive type coercion to handle undefined/string values
-    const safeTemp = Number(temp) || 20;
-    const safeHumidity = Number(humidity) || 50;
-    const safeUV = Number(uvIndex) || 5;
+    // Use ?? instead of || to preserve 0 and negative temperatures
+    const numTemp = Number(temp);
+    const numHumidity = Number(humidity);
+    const numUV = Number(uvIndex);
+    const safeTemp = isNaN(numTemp) ? 20 : numTemp;
+    const safeHumidity = isNaN(numHumidity) ? 50 : numHumidity;
+    const safeUV = isNaN(numUV) ? 5 : numUV;
+
 
     // Comfort Index Formula:
     // Score = 10 - |Temp - 22| × 0.3 - Humidity × 0.02 - UV × 0.5

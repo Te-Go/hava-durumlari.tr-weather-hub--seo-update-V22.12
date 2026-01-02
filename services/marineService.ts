@@ -273,3 +273,190 @@ export function calculateBeachScore(data: MarineData, uvIndex: number, airTemp: 
 
     return Math.max(0, Math.min(10, score));
 }
+
+// ============================================================
+// SEA TEMPERATURE PAGE - New exports for /deniz-suyu-sicakligi
+// ============================================================
+
+/**
+ * Sea regions with their cities (Turkish names for display)
+ */
+export type SeaRegion = 'akdeniz' | 'ege' | 'marmara' | 'karadeniz';
+
+export const SEA_REGIONS: Record<SeaRegion, { name: string; emoji: string; cities: string[] }> = {
+    akdeniz: {
+        name: 'Akdeniz',
+        emoji: '',
+        cities: ['Antalya', 'Alanya', 'Side', 'Belek', 'Kemer', 'Kaş', 'Kalkan', 'Mersin', 'Adana', 'Hatay', 'Marmaris', 'Fethiye', 'Ölüdeniz', 'Dalyan']
+    },
+    ege: {
+        name: 'Ege Denizi',
+        emoji: '',
+        cities: ['İzmir', 'Çeşme', 'Kuşadası', 'Didim', 'Bodrum', 'Datça', 'Aydın', 'Muğla']
+    },
+    marmara: {
+        name: 'Marmara Denizi',
+        emoji: '',
+        cities: ['İstanbul', 'Kocaeli', 'Bursa', 'Yalova', 'Tekirdağ', 'Balıkesir', 'Çanakkale']
+    },
+    karadeniz: {
+        name: 'Karadeniz',
+        emoji: '',
+        cities: ['Samsun', 'Trabzon', 'Rize', 'Sinop', 'Zonguldak', 'Ordu', 'Giresun', 'Artvin', 'Bartın', 'Düzce']
+    }
+};
+
+/**
+ * Location data for the sea temp page
+ */
+export interface SeaTempLocation {
+    city: string;
+    displayName: string;
+    region: SeaRegion;
+    lat: number;
+    lon: number;
+    seaTemp: number;
+    waveHeight: number;
+    swimSafety: 'safe' | 'caution' | 'dangerous';
+    ferryStatus: 'normal' | 'delayed' | 'cancelled';
+}
+
+/**
+ * Get display name (with Turkish characters)
+ */
+function getDisplayName(cityKey: string): string {
+    const displayNames: Record<string, string> = {
+        istanbul: 'İstanbul', izmir: 'İzmir', antalya: 'Antalya', mersin: 'Mersin',
+        adana: 'Adana', hatay: 'Hatay', alanya: 'Alanya', side: 'Side', belek: 'Belek',
+        kemer: 'Kemer', kas: 'Kaş', kalkan: 'Kalkan', marmaris: 'Marmaris',
+        fethiye: 'Fethiye', oludeniz: 'Ölüdeniz', dalyan: 'Dalyan', bodrum: 'Bodrum',
+        datca: 'Datça', didim: 'Didim', kusadasi: 'Kuşadası', cesme: 'Çeşme',
+        aydin: 'Aydın', mugla: 'Muğla', kocaeli: 'Kocaeli', bursa: 'Bursa',
+        yalova: 'Yalova', tekirdag: 'Tekirdağ', balikesir: 'Balıkesir',
+        canakkale: 'Çanakkale', samsun: 'Samsun', trabzon: 'Trabzon', rize: 'Rize',
+        sinop: 'Sinop', zonguldak: 'Zonguldak', ordu: 'Ordu', giresun: 'Giresun',
+        artvin: 'Artvin', bartin: 'Bartın', duzce: 'Düzce'
+    };
+    return displayNames[cityKey] || cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+}
+
+/**
+ * Get region for a city key
+ */
+function getCityRegion(cityKey: string): SeaRegion {
+    const regionMap: Record<string, SeaRegion> = {
+        // Akdeniz
+        antalya: 'akdeniz', alanya: 'akdeniz', side: 'akdeniz', belek: 'akdeniz',
+        kemer: 'akdeniz', kas: 'akdeniz', kalkan: 'akdeniz', mersin: 'akdeniz',
+        adana: 'akdeniz', hatay: 'akdeniz', marmaris: 'akdeniz', fethiye: 'akdeniz',
+        oludeniz: 'akdeniz', dalyan: 'akdeniz',
+        // Ege
+        izmir: 'ege', cesme: 'ege', kusadasi: 'ege', didim: 'ege', bodrum: 'ege',
+        datca: 'ege', aydin: 'ege', mugla: 'ege',
+        // Marmara
+        istanbul: 'marmara', kocaeli: 'marmara', bursa: 'marmara', yalova: 'marmara',
+        tekirdag: 'marmara', balikesir: 'marmara', canakkale: 'marmara',
+        // Karadeniz
+        samsun: 'karadeniz', trabzon: 'karadeniz', rize: 'karadeniz', sinop: 'karadeniz',
+        zonguldak: 'karadeniz', ordu: 'karadeniz', giresun: 'karadeniz',
+        artvin: 'karadeniz', bartin: 'karadeniz', duzce: 'karadeniz'
+    };
+    return regionMap[cityKey] || 'akdeniz';
+}
+
+/**
+ * Fetch all sea temperatures for the sea temp page
+ * Batches requests with a small delay to avoid rate limiting
+ */
+export async function fetchAllSeaTemperatures(): Promise<SeaTempLocation[]> {
+    const results: SeaTempLocation[] = [];
+    const cityKeys = Object.keys(COASTAL_COORDS);
+
+    // Batch fetch with Promise.allSettled to handle failures gracefully
+    const fetchPromises = cityKeys.map(async (cityKey, index) => {
+        // Small delay to prevent rate limiting
+        await new Promise(resolve => setTimeout(resolve, index * 50));
+
+        const coords = COASTAL_COORDS[cityKey];
+        const params = new URLSearchParams({
+            latitude: coords.lat.toString(),
+            longitude: coords.lon.toString(),
+            current: 'wave_height,wave_direction,wave_period',
+            hourly: 'sea_surface_temperature',
+            forecast_days: '1',
+            timezone: 'Europe/Istanbul'
+        });
+
+        try {
+            const response = await fetch(`${MARINE_API_BASE}?${params}`);
+            if (!response.ok) return null;
+
+            const data = await response.json();
+            const currentHour = new Date().getHours();
+            const seaTemp = data.hourly?.sea_surface_temperature?.[currentHour] ?? 18;
+            const waveHeight = data.current?.wave_height ?? 0;
+
+            return {
+                city: cityKey,
+                displayName: getDisplayName(cityKey),
+                region: getCityRegion(cityKey),
+                lat: coords.lat,
+                lon: coords.lon,
+                seaTemp: Math.round(seaTemp * 10) / 10,
+                waveHeight: Math.round(waveHeight * 10) / 10,
+                swimSafety: deriveSwimSafety(waveHeight, seaTemp),
+                ferryStatus: deriveFerryStatus(waveHeight)
+            } as SeaTempLocation;
+        } catch {
+            return null;
+        }
+    });
+
+    const settled = await Promise.allSettled(fetchPromises);
+    for (const result of settled) {
+        if (result.status === 'fulfilled' && result.value) {
+            results.push(result.value);
+        }
+    }
+
+    return results;
+}
+
+/**
+ * Generate summary text for a sea region
+ */
+export function generateRegionSummary(region: SeaRegion, locations: SeaTempLocation[]): string {
+    const regionLocations = locations.filter(l => l.region === region);
+    if (regionLocations.length === 0) return 'Veri yükleniyor...';
+
+    const temps = regionLocations.map(l => l.seaTemp);
+    const minTemp = Math.min(...temps);
+    const maxTemp = Math.max(...temps);
+    const avgTemp = Math.round(temps.reduce((a, b) => a + b, 0) / temps.length);
+
+    const safeCount = regionLocations.filter(l => l.swimSafety === 'safe').length;
+    const totalCount = regionLocations.length;
+
+    const regionInfo = SEA_REGIONS[region];
+
+    // Temperature assessment
+    let tempText: string;
+    if (avgTemp >= 24) {
+        tempText = `${regionInfo.name} şu an yüzme için ideal sıcaklıkta.`;
+    } else if (avgTemp >= 20) {
+        tempText = `${regionInfo.name}'de deniz sıcaklığı konforlu.`;
+    } else if (avgTemp >= 16) {
+        tempText = `${regionInfo.name}'de deniz suyu serin.`;
+    } else {
+        tempText = `${regionInfo.name}'de deniz suyu soğuk, yüzme için uygun değil.`;
+    }
+
+    // Safety assessment
+    const safetyText = safeCount === totalCount
+        ? 'Tüm bölgelerde yüzme güvenli.'
+        : safeCount > totalCount / 2
+            ? `${safeCount}/${totalCount} bölgede yüzme güvenli.`
+            : 'Dalgalı koşullar nedeniyle denize girerken dikkatli olun.';
+
+    return `${tempText} Sıcaklık ${minTemp}°-${maxTemp}°C arasında. ${safetyText}`;
+}

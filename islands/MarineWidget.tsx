@@ -65,8 +65,13 @@ const MarineWidget: React.FC<Props> = ({ data, narrative, lastUpdated, cityDispl
                 </div>
             </div>
 
-            {/* Empty Footer for spacing or just end div */}
-            <div className="h-[20px] bg-white dark:bg-slate-800 w-full"></div>
+            {/* Footer Link */}
+            <a
+                href="/deniz-suyu-sicakligi"
+                className="h-[36px] px-4 flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+            >
+                Tüm Türkiye Deniz Sıcaklıkları →
+            </a>
         </div>
     );
 };
