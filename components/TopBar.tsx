@@ -53,14 +53,13 @@ const TopBar: React.FC<TopBarProps> = ({ tickers, currentTemp, onHomeClick, posi
           </button>
         </div>
 
-        {/* Right Section: Tickers - LAUNCH PHASE: Links disabled until hubs are ready */}
+        {/* Right Section: Tickers - LAUNCH PHASE: Show "Çok Yakında" until hubs are ready */}
         <div className="flex items-center space-x-3">
           {tickers.map((ticker) => (
             <div
               key={ticker.symbol}
-              // href={ticker.link || '#'} // DISABLED - Hubs not ready
               className={pillClass}
-              title={`${ticker.symbol}`}
+              title={`${ticker.symbol} - Çok Yakında`}
               style={{ cursor: 'default' }}
             >
               {/* Logo Logic: Render Image if exists, else generic Icon */}
@@ -84,10 +83,7 @@ const TopBar: React.FC<TopBarProps> = ({ tickers, currentTemp, onHomeClick, posi
               <span className="opacity-80 hidden">{ticker.icon}</span>
 
               <span className="text-gray-300">{ticker.symbol}</span>
-              <span className="font-bold text-white">{ticker.price}</span>
-              <span className={ticker.change >= 0 ? 'text-green-400' : 'text-red-400'}>
-                {ticker.change > 0 ? '↑' : '↓'} {Math.abs(ticker.change)}%
-              </span>
+              <span className="text-xs text-slate-400">Çok Yakında</span>
             </div>
           ))}
         </div>

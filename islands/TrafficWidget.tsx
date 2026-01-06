@@ -49,8 +49,7 @@ const TrafficWidget: React.FC<Props> = ({
 
     return (
         <div
-            className="sinan-traffic-widget bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700"
-            style={{ minHeight: 'var(--sinan-slot-height, 250px)' }}
+            className="sinan-traffic-widget bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-full flex flex-col"
         >
             {/* Header: 50px fixed */}
             <div className="h-[50px] px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-700">
@@ -76,13 +75,12 @@ const TrafficWidget: React.FC<Props> = ({
                 <p className="line-clamp-2">{narrative || 'Trafik verisi yükleniyor...'}</p>
             </div>
 
-            {/* Routes: SLOT_COUNT × ROUTE_HEIGHT = 180px */}
-            <div className="px-4">
+            {/* Routes: Flex grow to fill available height */}
+            <div className="px-4 flex-grow flex flex-col justify-center">
                 {visibleRoutes.map((route, i) => (
                     <div
                         key={i}
-                        className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 last:border-0"
-                        style={{ height: ROUTE_HEIGHT }}
+                        className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 last:border-0 py-2"
                     >
                         <span className="text-slate-700 dark:text-slate-300 text-sm truncate max-w-[70%]">
                             {route.name}
@@ -93,11 +91,11 @@ const TrafficWidget: React.FC<Props> = ({
                     </div>
                 ))}
 
-                {/* FILLER SLOTS: Maintain fixed height */}
+                {/* FILLER SLOTS: Maintain layout balance if needed, or let flex handle it */}
                 {Array.from({ length: emptySlots }).map((_, i) => (
                     <div
                         key={`empty-${i}`}
-                        style={{ height: ROUTE_HEIGHT }}
+                        className="h-[45px]"
                         aria-hidden="true"
                     />
                 ))}

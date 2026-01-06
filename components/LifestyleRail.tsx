@@ -84,9 +84,9 @@ const LifestyleRail: React.FC<LifestyleRailProps> = ({ data }) => {
               <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 leading-none mb-1">
                 {idx.name}
               </span>
-              <span className={`text-[10px] font-extrabold uppercase tracking-wide
-                  ${idx.status === 'good' ? 'text-emerald-600 dark:text-emerald-400' :
-                  (idx.status === 'moderate' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')}
+              <span className={`text-[10px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-md
+                  ${idx.status === 'good' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' :
+                  (idx.status === 'moderate' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300' : 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300')}
                `}>
                 {idx.label}
               </span>

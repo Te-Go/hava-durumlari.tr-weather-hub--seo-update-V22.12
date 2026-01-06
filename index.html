@@ -8,15 +8,20 @@
     content="Türkiye'nin en kapsamlı hava durumu platformu. 15 günlük tahminler, meteoroloji haritaları, tarım ve denizcilik raporları." />
   <title>Hava Durumu | TG Dijital</title>
 
-  <!-- Performance: Preconnect to CDNs -->
+  <!-- Performance: Preconnect to CDNs & APIs -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn-icons-png.flaticon.com">
   <link rel="preconnect" href="https://picsum.photos">
+  <link rel="preconnect" href="https://api.open-meteo.com">
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap"
-    rel="stylesheet">
+  <!-- Google Fonts: Preload to avoid render blocking -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap"
+    as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap"
+      rel="stylesheet">
+  </noscript>
 
   <!-- Leaflet CSS for Sea Temperature Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"

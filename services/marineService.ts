@@ -117,79 +117,90 @@ export function isCoastalCity(city: string): boolean {
  * 
  * @param city - City name (will use pre-defined coastal coords)
  */
+import { fetchWithCache } from './cacheService';
+
+/**
+ * Fetch marine data from Open-Meteo Marine API
+ * Uses coastal-shifted coordinates for accurate data
+ * 
+ * @param city - City name (will use pre-defined coastal coords)
+ */
 export async function fetchMarineData(city: string): Promise<MarineData | null> {
-    try {
-        // Get pre-defined coastal coordinates
-        const coords = getMarineCoords(city);
+    const coords = getMarineCoords(city);
 
-        if (!coords) {
-            console.log(`Marine API: ${city} is not a coastal city in our database`);
-            return null;
-        }
-
-        // Note: Open-Meteo Marine API uses different variable names
-        // - current: wave_height, wave_direction, wave_period
-        // - hourly: sea_surface_temperature (only available as hourly!)
-        const params = new URLSearchParams({
-            latitude: coords.lat.toString(),
-            longitude: coords.lon.toString(),
-            current: [
-                'wave_height',
-                'wave_direction',
-                'wave_period',
-                'wind_wave_height',
-                'swell_wave_height'
-            ].join(','),
-            hourly: 'sea_surface_temperature',  // SST is only hourly
-            forecast_days: '1',
-            timezone: 'Europe/Istanbul'
-        });
-
-        console.log(`Marine API: Fetching data for ${city} at ${coords.lat}, ${coords.lon}`);
-        const response = await fetch(`${MARINE_API_BASE}?${params}`);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Marine API error ${response.status}:`, errorText);
-
-            if (response.status === 400) {
-                console.log(`Marine API: Coordinates for ${city} still not over water - needs further adjustment`);
-                return null;
-            }
-            throw new Error(`Marine API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const current = data.current;
-
-        // Get current hour's sea surface temperature from hourly data
-        const currentHour = new Date().getHours();
-        const seaTemp = data.hourly?.sea_surface_temperature?.[currentHour] ?? 18;
-
-        // Derive ferry status from wave height
-        const waveHeight = current?.wave_height || 0;
-        const ferryStatus = deriveFerryStatus(waveHeight);
-
-        // Derive swim safety from conditions
-        const swimSafety = deriveSwimSafety(waveHeight, seaTemp);
-
-        console.log(`Marine API: Success for ${city} - SeaTemp: ${seaTemp}°C, Waves: ${waveHeight}m`);
-
-        return {
-            seaTemp: Math.round(seaTemp * 10) / 10,
-            waveHeight: Math.round((current?.wave_height || 0) * 10) / 10,
-            wavePeriod: Math.round(current?.wave_period || 0),
-            waveDirection: current?.wave_direction || 0,
-            swellHeight: Math.round((current?.swell_wave_height || 0) * 10) / 10,
-            windWaveHeight: Math.round((current?.wind_wave_height || 0) * 10) / 10,
-            ferryStatus,
-            swimSafety,
-            lastUpdated: Date.now()
-        };
-    } catch (error) {
-        console.error('Marine data fetch failed:', error);
+    if (!coords) {
+        console.log(`Marine API: ${city} is not a coastal city in our database`);
         return null;
     }
+
+    const cityKey = normalizeCity(city);
+
+    // CACHE WRAPPER: 60 Minutes (Standard Weather Update Cycle)
+    return fetchWithCache(
+        `marine_v2_${cityKey}`,
+        async () => {
+            // Note: Open-Meteo Marine API uses different variable names
+            // - current: wave_height, wave_direction, wave_period
+            // - hourly: sea_surface_temperature (only available as hourly!)
+            const params = new URLSearchParams({
+                latitude: coords.lat.toString(),
+                longitude: coords.lon.toString(),
+                current: [
+                    'wave_height',
+                    'wave_direction',
+                    'wave_period',
+                    'wind_wave_height',
+                    'swell_wave_height'
+                ].join(','),
+                hourly: 'sea_surface_temperature',  // SST is only hourly
+                forecast_days: '1',
+                timezone: 'Europe/Istanbul'
+            });
+
+            console.log(`Marine API: Fetching data for ${city} at ${coords.lat}, ${coords.lon}`);
+            const response = await fetch(`${MARINE_API_BASE}?${params}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Marine API error ${response.status}:`, errorText);
+
+                if (response.status === 400) {
+                    console.log(`Marine API: Coordinates for ${city} still not over water - needs further adjustment`);
+                    return null;
+                }
+                throw new Error(`Marine API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const current = data.current;
+
+            // Get current hour's sea surface temperature from hourly data
+            const currentHour = new Date().getHours();
+            const seaTemp = data.hourly?.sea_surface_temperature?.[currentHour] ?? 18;
+
+            // Derive ferry status from wave height
+            const waveHeight = current?.wave_height || 0;
+            const ferryStatus = deriveFerryStatus(waveHeight);
+
+            // Derive swim safety from conditions
+            const swimSafety = deriveSwimSafety(waveHeight, seaTemp);
+
+            console.log(`Marine API: Success for ${city} - SeaTemp: ${seaTemp}°C, Waves: ${waveHeight}m`);
+
+            return {
+                seaTemp: Math.round(seaTemp * 10) / 10,
+                waveHeight: Math.round((current?.wave_height || 0) * 10) / 10,
+                wavePeriod: Math.round(current?.wave_period || 0),
+                waveDirection: current?.wave_direction || 0,
+                swellHeight: Math.round((current?.swell_wave_height || 0) * 10) / 10,
+                windWaveHeight: Math.round((current?.wind_wave_height || 0) * 10) / 10,
+                ferryStatus,
+                swimSafety,
+                lastUpdated: Date.now()
+            };
+        },
+        60 // 1 Hour TTL
+    );
 }
 
 /**

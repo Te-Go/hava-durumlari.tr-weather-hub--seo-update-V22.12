@@ -3,6 +3,7 @@ import React from 'react';
 import { WeatherData } from '../types';
 import { CONFIG } from '../services/weatherService';
 import { Icon } from './Icons';
+import { sanitizeHtmlLight } from '../shared/sanitizeHtml';
 
 interface WeatherTriggeredAdProps {
     weatherData: WeatherData | null;
@@ -131,10 +132,10 @@ const WeatherTriggeredAd: React.FC<WeatherTriggeredAdProps> = ({ weatherData }) 
     return (
         <div className="w-full mt-6 mb-8 relative group overflow-hidden rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             {CONFIG.ads?.horizontal ? (
-                // Production: Inject real ad code
+                // Production: Inject real ad code (sanitized for XSS protection)
                 <div
                     className="w-full min-h-[100px] flex items-center justify-center bg-slate-50 dark:bg-slate-900"
-                    dangerouslySetInnerHTML={{ __html: CONFIG.ads.horizontal }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtmlLight(CONFIG.ads.horizontal) }}
                 />
             ) : (
                 // Development: Show weather-triggered mock ad

@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { WeatherData, HourlyForecast } from '../types';
+import { WeatherData, HourlyForecast, DailyForecast } from '../types';
 import GlassCard from './GlassCard';
 import { Icon } from './Icons';
 import { CONFIG } from '../services/weatherService';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart } from 'recharts';
 import DailyForecastChart from './DailyForecastChart';
+import { sanitizeHtmlLight } from '../shared/sanitizeHtml';
 
 // Type for selected metric in drawer
 type MetricType = 'feelsLike' | 'uv' | 'humidity' | null;
@@ -211,101 +212,250 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
     }
   };
 
+  const renderHourlyChart = (data: WeatherData, day: DailyForecast) => {
+    // SINAN FIX: Use real date matching (ISO) instead of blind slicing
+    let dayHourlyData: HourlyForecast[] = [];
+
+    // 1. Try ISO Date Match (Best)
+    if (day.fullDate) {
+      dayHourlyData = data.hourly.filter(h => h.fullDate === day.fullDate);
+    }
+
+    // 2. Fallback to Unique Index Match (if fullDate missing for some reason)
+    if (dayHourlyData.length === 0 && day.date) {
+      const uniqueDates = Array.from(new Set(data.hourly.map(h => h.fullDate))).filter(Boolean);
+      const targetDate = uniqueDates[data.daily.indexOf(day)];
+      if (targetDate) {
+        dayHourlyData = data.hourly.filter(h => h.fullDate === targetDate);
+      }
+    }
+
+    if (!dayHourlyData.length) return <div className="p-4 text-center text-sm text-slate-400">Saatlik veri bulunamadı.</div>;
+
+    return (
+      <div className="h-[140px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={dayHourlyData.map((h) => ({
+              time: h.time.split(':')[0],
+              temp: Math.round(h.temp),
+              feelsLike: Math.round(h.feelsLike),
+              precipProb: h.precipProb,
+              humidity: h.humidity,
+              windSpeed: h.windSpeed
+            }))}
+            margin={{ top: 10, right: 5, left: -15, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="tempGradientDrawer" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="precipGradientDrawer" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
+            <XAxis
+              dataKey="time"
+              tick={{ fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+              interval={2}
+              tickFormatter={(val) => `${val}:00`}
+            />
+            <YAxis
+              yAxisId="temp"
+              tick={{ fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+              domain={['dataMin - 2', 'dataMax + 2']}
+              tickFormatter={(val) => `${val}°`}
+            />
+            <YAxis
+              yAxisId="precip"
+              orientation="right"
+              tick={{ fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+              domain={[0, 100]}
+              hide
+            />
+            <Tooltip
+              content={({ active, payload, label }: any) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-3 py-2 rounded-lg shadow-lg border border-white/20 dark:border-slate-600 text-xs">
+                      <p className="font-bold text-slate-700 dark:text-slate-200 mb-1">{label}:00</p>
+                      <p className="text-orange-500">Sıcaklık: {payload[0]?.value}°</p>
+                      <p className="text-purple-500">Hissedilen: {payload[1]?.value}°</p>
+                      <p className="text-blue-500">Yağış: {payload[2]?.value}%</p>
+                      <p className="text-slate-500">Rüzgar: {payload[3]?.value} km/sa</p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Area
+              yAxisId="temp"
+              type="monotone"
+              dataKey="temp"
+              stroke="#f97316"
+              strokeWidth={2}
+              fill="url(#tempGradientDrawer)"
+              name="Sıcaklık"
+            />
+            <Line
+              yAxisId="temp"
+              type="monotone"
+              dataKey="feelsLike"
+              stroke="#a855f7"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+              name="Hissedilen"
+            />
+            <Area
+              yAxisId="precip"
+              type="monotone"
+              dataKey="precipProb"
+              stroke="#3b82f6"
+              strokeWidth={1}
+              fill="url(#precipGradientDrawer)"
+              name="Yağış"
+              opacity={0.6}
+            />
+            <Line
+              yAxisId="precip"
+              type="monotone"
+              dataKey="windSpeed"
+              stroke="#64748b"
+              strokeWidth={1.5}
+              dot={false}
+              name="Rüzgar"
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-6 mb-6">
       <div className="flex flex-col md:flex-row gap-6">
         {/* 15 Day Vertical */}
         <div className="flex-1 min-w-0" ref={dailySectionRef}>
           <GlassCard className="flex flex-col h-full relative" noPadding>
-            <div className="p-5 pb-2 border-b border-glass-border dark:border-dark-border">
-              <h3 className="font-semibold text-slate-700 dark:text-slate-200">15 Günlük Tahmin</h3>
+            {/* SEO: "Matryoshka" 5-Day Nesting Protocol */}
+            {/* TACTICAL ZONE: Days 1-5 (High Detail Signal) */}
+            <div className="p-5 pb-0">
+              <h2 id="5-gunluk-detay" className="text-lg font-bold text-slate-800 dark:text-blue-100 flex items-center gap-2">
+                <Icon.Calendar size={20} className="text-blue-600 dark:text-blue-400" />
+                5 Günlük Detaylı Hava Durumu
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-l-4 border-blue-500 pl-3 py-1 bg-blue-50/50 dark:bg-slate-800/50 rounded-r-lg">
+                <strong>5 günlük hava durumu</strong> verilerine göre, önümüzdeki günlerde sıcaklık en yüksek {Math.round(Math.max(...data.daily.slice(0, 5).map(d => d.high)))}°C, en düşük {Math.round(Math.min(...data.daily.slice(0, 5).map(d => d.low)))}°C olacak. Detaylı saatlik rapor için günlerin üzerine tıklayınız.
+              </p>
             </div>
 
-            <div className="max-h-none md:max-h-[500px] overflow-y-visible md:overflow-y-auto custom-scrollbar divide-y divide-blue-50 dark:divide-slate-700 relative pb-4">
-              {data.daily.map((day) => (
-                <div key={`${day.day}-${day.date}`} className={`group transition-colors ${expandedDay === day.day ? 'bg-blue-100/60 dark:bg-slate-700/30' : ''}`}>
-                  <button onClick={() => toggleDay(day.day)} className="w-full flex items-center justify-between p-4 bg-slate-50/60 hover:bg-slate-100 dark:bg-transparent dark:hover:bg-slate-800/40 transition-colors min-h-[64px] border-b border-slate-100 dark:border-transparent">
+            <div className="custom-scrollbar divide-y divide-blue-50 dark:divide-slate-700 relative pb-4">
+              {/* Render Days 0-4 (Tactical) */}
+              {data.daily.slice(0, 5).map((day) => (
+                <div key={`${day.day}-${day.date}`} className={`group transition-colors border-l-4 ${expandedDay === day.day ? 'bg-blue-100/60 dark:bg-slate-700/30 border-l-blue-500' : 'border-l-transparent hover:border-l-blue-300'}`}>
+                  <button onClick={() => toggleDay(day.day)} className={`w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors min-h-[72px] ${expandedDay === day.day ? 'bg-slate-100/80 dark:bg-slate-700/30' : (data.daily.indexOf(day) % 2 === 0 ? 'bg-slate-50/60 dark:bg-transparent' : 'bg-white/60 dark:bg-slate-800/20')}`}>
                     {/* Column 1: Day + Date */}
-                    <div className="flex items-center min-w-[100px]">
-                      <span className={`font-medium ${day.day === 'Yarın' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-200'}`}>{day.day}</span>
-                      <span className="text-xs text-slate-400 ml-1.5">{day.date}</span>
+                    <div className="flex flex-col items-start min-w-[100px]">
+                      <span className={`font-bold text-base ${day.day === 'Yarın' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-100'}`}>{day.day}</span>
+                      <span className="text-xs text-slate-500 font-medium">{day.date}</span>
                     </div>
                     {/* Column 2: Weather Icon */}
-                    <div className="flex items-center justify-center min-w-[40px]">{getForecastIcon(day.icon, 24)}</div>
+                    <div className="flex items-center justify-center min-w-[40px] scale-110 transform transition-transform group-hover:scale-125 duration-300">{getForecastIcon(day.icon, 28)}</div>
                     {/* Column 3: Description (short weather text) */}
-                    <div className="hidden md:block text-sm text-slate-500 dark:text-slate-400 min-w-[120px] text-center truncate">
+                    <div className="hidden md:block text-sm font-medium text-slate-600 dark:text-slate-300 min-w-[120px] text-center truncate">
                       {day.description || getWeatherDescription(day.icon)}
                     </div>
-                    {/* Column 4: Rain Probability */}
-                    <div className="flex items-center bg-blue-50/80 dark:bg-slate-700 px-2 py-1 rounded-md min-w-[55px] justify-center text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                      <Icon.Droplets size={12} className="mr-1 text-blue-500" />{day.rainProb}%
+                    {/* Column 4: Rain Probability - Highlighted */}
+                    <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 px-3 py-1.5 rounded-lg min-w-[60px] justify-center text-xs font-bold text-blue-700 dark:text-blue-300 shadow-sm">
+                      <Icon.Droplets size={14} className="mr-1.5" />{day.rainProb}%
                     </div>
-                    {/* Column 5: Wind */}
-                    <div className="hidden sm:flex items-center bg-slate-50/80 dark:bg-slate-700 px-2 py-1 rounded-md min-w-[55px] justify-center text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                      <Icon.Wind size={12} className="mr-1 text-slate-400" />{day.wind.split(' ')[0]}
+                    {/* Column 5: Wind - Enhanced */}
+                    <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-700/60 px-2 py-1.5 rounded-lg min-w-[60px] justify-center text-xs font-semibold text-slate-600 dark:text-slate-300">
+                      <Icon.Wind size={14} className="mr-1.5 text-slate-400" />{day.wind.split(' ')[0]}
                     </div>
-                    {/* Column 6: Temperatures */}
-                    <div className="flex items-center space-x-2 min-w-[70px] justify-end">
-                      <span className="text-slate-800 dark:text-white font-semibold">{Math.round(day.high)}°</span>
-                      <span className="text-slate-400 dark:text-slate-500 font-light">{Math.round(day.low)}°</span>
+                    {/* Column 5b: Visibility (New) */}
+                    <div className="hidden lg:flex items-center justify-center min-w-[60px] text-xs text-slate-500 gap-1" title="Görüş Mesafesi">
+                      <Icon.Eye size={14} className="text-slate-400" />
+                      {day.visibility >= 10 ? '10+ km' : `${day.visibility} km`}
+                    </div>
+                    {/* Column 6: Temperatures - Large */}
+                    <div className="flex items-center space-x-3 min-w-[80px] justify-end">
+                      <span className="text-slate-900 dark:text-white font-bold text-lg">{Math.round(day.high)}°</span>
+                      <span className="text-slate-400 dark:text-slate-500 font-medium text-base">{Math.round(day.low)}°</span>
                     </div>
                     {/* Column 7: Chevron */}
-                    <Icon.ChevronRight className={`w-4 h-4 text-slate-300 transition-transform duration-300 ${expandedDay === day.day ? 'rotate-90' : ''}`} />
+                    <Icon.ChevronRight className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${expandedDay === day.day ? 'rotate-90 text-blue-500' : ''}`} />
                   </button>
                   <div className={`grid transition-all duration-500 ease-out overflow-hidden ${expandedDay === day.day ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div className="min-h-0">
-                      <div className="bg-blue-50/30 dark:bg-slate-800/30 p-4 grid grid-cols-3 gap-3 text-xs border-t border-blue-50/50 dark:border-slate-700 shadow-inner">
-                        {/* 1. Feels Like - CLICKABLE */}
-                        <button
-                          onClick={() => toggleMetric(day.day, 'feelsLike')}
-                          className={`flex flex-col items-center bg-white/60 dark:bg-slate-700/60 p-3 rounded-xl border shadow-sm transition-all active:scale-95 cursor-pointer
-                              ${selectedMetric?.day === day.day && selectedMetric?.metric === 'feelsLike'
-                              ? 'border-purple-400 ring-2 ring-purple-200 dark:ring-purple-800'
-                              : 'border-white/50 dark:border-slate-600 hover:border-purple-300 dark:hover:border-purple-600'}`}
-                        >
-                          <Icon.Thermometer size={18} className="text-purple-400 mb-2" />
-                          <span className="text-slate-400 dark:text-slate-500 mb-1">Sıcaklık / Hissedilen</span>
-                          <span className="font-bold text-slate-600 dark:text-slate-200 text-sm">{Math.round(day.feelsLike)}°</span>
-                        </button>
-                        {/* 2. UV Index - CLICKABLE */}
-                        <button
-                          onClick={() => toggleMetric(day.day, 'uv')}
-                          className={`flex flex-col items-center bg-white/60 dark:bg-slate-700/60 p-3 rounded-xl border shadow-sm transition-all active:scale-95 cursor-pointer
-                              ${selectedMetric?.day === day.day && selectedMetric?.metric === 'uv'
-                              ? 'border-amber-400 ring-2 ring-amber-200 dark:ring-amber-800'
-                              : 'border-white/50 dark:border-slate-600 hover:border-amber-300 dark:hover:border-amber-600'}`}
-                        >
-                          <Icon.Sun size={18} className="text-orange-400 mb-2" />
-                          <span className="text-slate-400 dark:text-slate-500 mb-1">UV İndeksi</span>
-                          <span className="font-bold text-slate-600 dark:text-slate-200 text-sm">{Math.round(day.uvIndex)}</span>
-                        </button>
-                        {/* 3. Humidity + Rain - CLICKABLE */}
-                        <button
-                          onClick={() => toggleMetric(day.day, 'humidity')}
-                          className={`flex flex-col items-center bg-white/60 dark:bg-slate-700/60 p-3 rounded-xl border shadow-sm transition-all active:scale-95 cursor-pointer
-                              ${selectedMetric?.day === day.day && selectedMetric?.metric === 'humidity'
-                              ? 'border-cyan-400 ring-2 ring-cyan-200 dark:ring-cyan-800'
-                              : 'border-white/50 dark:border-slate-600 hover:border-cyan-300 dark:hover:border-cyan-600'}`}
-                        >
-                          <Icon.Droplets size={18} className="text-cyan-400 mb-2" />
-                          <span className="text-slate-400 dark:text-slate-500 mb-1">Nem / Yağış</span>
-                          <span className="font-bold text-slate-600 dark:text-slate-200 text-sm">{day.humidity}% / {day.rainProb}%</span>
-                        </button>
-                      </div>
-                      {/* SPARKLINE CHART - Shows when metric selected */}
-                      {selectedMetric?.day === day.day && selectedMetric.metric && (
-                        <div className="px-4 pb-4 bg-blue-50/30 dark:bg-slate-800/30">
-                          <MetricSparkline
-                            metric={selectedMetric.metric}
-                            hourlyData={data.hourly}
-                            dayFeelsLike={day.feelsLike}
-                          />
+                      {/* Comprehensive 24-Hour Forecast Chart */}
+                      <div className="bg-blue-50/30 dark:bg-slate-800/30 p-4 border-t border-blue-50/50 dark:border-slate-700">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Icon.ArrowUp size={14} className="text-slate-500" />
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">24 Saatlik Detaylı Tahmin</span>
                         </div>
-                      )}
+                        {/* Chart Logic Reuse */}
+                        {renderHourlyChart(data, day)}
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
+
+              {/* STRATEGIC ZONE: Days 6-15 (Standard Detail) */}
+              <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-y border-slate-200 dark:border-slate-700 py-3 px-5 mt-4">
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <Icon.Calendar size={14} />
+                  10-15 Günlük Uzun Vadeli Trend
+                </h3>
+              </div>
+
+              {/* Render Days 5-14 (Strategic) */}
+              {data.daily.slice(5).map((day) => (
+                <div key={`${day.day}-${day.date}`} className={`group transition-colors ${expandedDay === day.day ? 'bg-blue-100/60 dark:bg-slate-700/30' : ''}`}>
+                  <button onClick={() => toggleDay(day.day)} className={`w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors min-h-[50px] border-b border-slate-100 dark:border-transparent opacity-90 hover:opacity-100 ${expandedDay === day.day ? 'bg-slate-100/80 dark:bg-slate-700/30' : 'bg-transparent'}`}>
+                    {/* Compact Columns */}
+                    <div className="flex items-center min-w-[100px]">
+                      <span className="font-medium text-slate-600 dark:text-slate-300 w-24 text-left">{day.day}</span>
+                      <span className="text-xs text-slate-400">{day.date}</span>
+                    </div>
+                    <div className="flex items-center justify-center min-w-[40px]">{getForecastIcon(day.icon, 20)}</div>
+                    <div className="hidden md:block text-xs text-slate-400 min-w-[120px] text-center truncate">
+                      {day.description || getWeatherDescription(day.icon)}
+                    </div>
+                    <div className="flex items-center justify-center min-w-[55px] text-xs text-slate-500">
+                      {day.rainProb > 0 && <><Icon.Droplets size={12} className="mr-1 text-blue-400" />{day.rainProb}%</>}
+                    </div>
+                    <div className="hidden sm:flex items-center justify-center min-w-[55px] text-xs text-slate-400">
+                      <Icon.Wind size={12} className="mr-1 text-slate-300" />{day.wind.split(' ')[0]}
+                    </div>
+                    <div className="flex items-center space-x-2 min-w-[70px] justify-end">
+                      <span className="text-slate-700 dark:text-slate-200 font-semibold">{Math.round(day.high)}°</span>
+                      <span className="text-slate-400 dark:text-slate-600 font-light">{Math.round(day.low)}°</span>
+                    </div>
+                    <Icon.ChevronRight className={`w-4 h-4 text-slate-300 transition-transform duration-300 ${expandedDay === day.day ? 'rotate-90' : ''}`} />
+                  </button>
+                  {/* Expandable Chart for Strategic Days too */}
+                  <div className={`grid transition-all duration-500 ease-out overflow-hidden ${expandedDay === day.day ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <div className="min-h-0">
+                      <div className="bg-slate-50/50 dark:bg-slate-800/30 p-2 border-t border-slate-100 dark:border-slate-700">
+                        {renderHourlyChart(data, day)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
             </div>
 
             {/* Scroll Hint Fade (Visible only on Desktop with overflow) */}
@@ -342,7 +492,7 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
           {/* Ad 1: Travel */}
           <div className="bg-glass-white/40 dark:bg-slate-800/40 border border-glass-border dark:border-dark-border rounded-3xl h-[250px] flex items-center justify-center shadow-glass relative overflow-hidden group cursor-pointer">
             {CONFIG.ads?.square ? (
-              <div className="w-full h-full overflow-hidden" dangerouslySetInnerHTML={{ __html: CONFIG.ads.square }} />
+              <div className="w-full h-full overflow-hidden" dangerouslySetInnerHTML={{ __html: sanitizeHtmlLight(CONFIG.ads.square) }} />
             ) : (
               <>
                 <img
@@ -361,7 +511,7 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
           {/* Ad 2: Energy (Converted to Square, Removed Sticky) */}
           <div className="bg-glass-white/40 dark:bg-slate-800/40 border border-glass-border dark:border-dark-border rounded-3xl h-[250px] flex items-center justify-center shadow-glass relative overflow-hidden group cursor-pointer">
             {CONFIG.ads?.vertical ? (
-              <div className="w-full h-full overflow-hidden" dangerouslySetInnerHTML={{ __html: CONFIG.ads.vertical }} />
+              <div className="w-full h-full overflow-hidden" dangerouslySetInnerHTML={{ __html: sanitizeHtmlLight(CONFIG.ads.vertical) }} />
             ) : (
               <>
                 <img
@@ -378,9 +528,7 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
           </div>
         </div>
       </div>
-
-      {/* 15-Day Chart and Trend Analysis */}
-      <DailyForecastChart dailyData={data.daily} cityName={data.city} />
+      {/* NOTE: DailyForecastChart removed here - it's already shown in HeroDashboard for 15-days view */}
     </div>
   );
 };

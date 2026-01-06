@@ -70,7 +70,7 @@ const SeaRegionCard: React.FC<SeaRegionCardProps> = ({ region, locations, onLoca
             {isExpanded && (
                 <div className="border-t border-slate-100 dark:border-slate-700">
                     {/* Horizontal Scroll Cards */}
-                    <div className="overflow-x-auto scrollbar-hide">
+                    <div className="overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-500">
                         <div className="flex gap-3 p-4" style={{ minWidth: 'max-content' }}>
                             {regionLocations.map((location) => (
                                 <div

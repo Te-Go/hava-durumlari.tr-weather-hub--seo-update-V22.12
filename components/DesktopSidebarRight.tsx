@@ -2,6 +2,7 @@
 import React from 'react';
 import { CONFIG } from '../services/weatherService';
 import { NewsItem } from '../types';
+import { sanitizeHtmlLight } from '../shared/sanitizeHtml';
 
 // SINAN LAUNCH PHASE: Import new utility components
 import NetworkWidget from './NetworkWidget';
@@ -28,15 +29,28 @@ const DesktopSidebarRight: React.FC<DesktopSidebarRightProps> = ({ articles, cit
          ═══════════════════════════════════════════════════════════════════ */}
       <div className="hidden lg:block bg-glass-white/40 dark:bg-slate-800/40 border border-glass-border dark:border-dark-border rounded-3xl min-h-[600px] flex items-center justify-center shadow-glass relative overflow-hidden">
         {ads?.vertical ? (
-          <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: ads.vertical as string }} />
+          <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: sanitizeHtmlLight(ads.vertical as string) }} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-            <div className="bg-slate-100 dark:bg-slate-700/50 w-full h-full rounded-2xl flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                  Reklam Alanı
+            <div className="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700/50 w-full h-full rounded-2xl flex flex-col items-center justify-center p-6 relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+              {/* Background Decoration */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl -ml-6 -mb-6"></div>
+
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-white dark:bg-slate-700 rounded-2xl shadow-sm mb-4 mx-auto flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-3xl">📱</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-2">
+                  Mobil Uygulama
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                  Çok yakında App Store ve Google Play'de!
                 </p>
-                <p className="text-[10px] text-slate-300 dark:text-slate-600">300x600</p>
+                <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                  Haberdar Ol
+                </button>
               </div>
             </div>
           </div>

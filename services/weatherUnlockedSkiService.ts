@@ -38,6 +38,8 @@ function normalizeKey(str: string): string {
         .replace(/ç/g, 'c');
 }
 
+import { fetchWithCache } from './cacheService';
+
 export async function fetchWeatherUnlockedSki(city: string): Promise<SkiData | null> {
     const cityKey = normalizeKey(city);
 
@@ -61,59 +63,51 @@ export async function fetchWeatherUnlockedSki(city: string): Promise<SkiData | n
         return null;
     }
 
-    try {
-        // Use PHP Proxy (only works in WordPress)
-        const url = `/wp-json/sinan/v1/ski?id=${resortId}`;
-        const response = await fetch(url);
+    // CACHE WRAPPER: 12 Hours (720 minutes)
+    return fetchWithCache(
+        `ski_resort_${resortId}`,
+        async () => {
+            const url = `/wp-json/sinan/v1/ski?id=${resortId}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Proxy error');
 
-        if (!response.ok) throw new Error('Proxy error');
+            const data = await response.json();
+            const forecast = data.forecast?.[0]; // Today's forecast
+            if (!forecast) throw new Error('No forecast data');
 
-        const data = await response.json();
-        const forecast = data.forecast?.[0]; // Today's forecast
+            // Map forecast data to SkiData model
+            const baseTemp = forecast.base?.temp_c ?? 0;
+            const freshSnow = forecast.base?.fresh_snow_cm ?? 0;
+            const weatherCode = forecast.base?.wx_code ?? 0;
+            const conditions = getWeatherCondition(weatherCode);
 
-        if (!forecast) throw new Error('No forecast data');
-
-        // Map forecast data to SkiData model
-        const baseTemp = forecast.base?.temp_c ?? 0;
-        const freshSnow = forecast.base?.fresh_snow_cm ?? 0;
-        const windSpeed = forecast.base?.windspd_kmh ?? 0;
-        const weatherCode = forecast.base?.wx_code ?? 0;
-        const conditions = getWeatherCondition(weatherCode);
-
-        return {
-            resort: getProjectedResortName(resortKey),
-            snowDepth: freshSnow,
-            freshSnow24h: freshSnow,
-            baseTemp: baseTemp,
-            summitTemp: baseTemp - 6, // Estimate
-            liftsOpen: 0, // Unknown from forecast API
-            liftsTotal: SKI_RESORTS[cityKey]?.totalLifts || 10,
-            avalancheRisk: 'moderate',
-            snowCondition: freshSnow > 10 ? 'powder' : 'packed',
-            visibility: 'good',
-            narrative: `${getProjectedResortName(resortKey)}: ${freshSnow}cm taze kar. ${conditions.text}.`,
-            lastUpdated: Date.now()
-        };
-
-    } catch (e) {
+            return {
+                resort: getProjectedResortName(resortKey!), // assert non-null
+                snowDepth: freshSnow, // API gives fresh snow, assume baseline
+                freshSnow24h: freshSnow,
+                baseTemp: baseTemp,
+                summitTemp: baseTemp - 6, // Estimate
+                liftsOpen: 0,
+                liftsTotal: SKI_RESORTS[cityKey]?.totalLifts || 10,
+                avalancheRisk: 'moderate',
+                snowCondition: freshSnow > 10 ? 'powder' : 'packed',
+                visibility: 'good',
+                narrative: `${getProjectedResortName(resortKey!)}: ${freshSnow}cm taze kar. ${conditions.text}.`,
+                lastUpdated: Date.now()
+            };
+        },
+        720 // 12 Hours TTL
+    ).catch(e => {
         console.warn('[Ski] API fetch failed, using calculated fallback:', e);
-
-        // FALLBACK: Use calculateSkiConditions with mock weather data
-        // This ensures the widget works in dev mode without the PHP proxy
+        // FALLBACK
         const resort = SKI_RESORTS[cityKey];
         if (resort) {
             return calculateSkiConditions(
-                cityKey,
-                -5,    // Default winter temp
-                5,     // Default precipitation
-                20,    // Default wind
-                50,    // Default cloud cover
-                10     // Default snowfall
+                cityKey, -5, 5, 20, 50, 10
             );
         }
-
         return null;
-    }
+    });
 }
 
 function getProjectedResortName(key: string): string {

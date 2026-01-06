@@ -143,37 +143,495 @@ export const initAds = () => {
 };
 
 // --- UTILITIES ---
+// SECURITY: Input validation added for URL slug parsing
+const MAX_SLUG_LENGTH = 100;
+
 export const toSlug = (text: string): string => {
-  const lower = text.toLowerCase().trim();
+  // Security: Validate input
+  if (!text || typeof text !== 'string') return '';
 
-  // SEO Overrides for Specific Districts (Parent City Inclusion)
-  if (lower === 'çankaya' || lower === 'cankaya') return 'ankara-cankaya';
-  if (lower === 'bağcılar' || lower === 'bagcilar') return 'istanbul-bagcilar';
-  if (lower === 'üsküdar' || lower === 'uskudar') return 'istanbul-uskudar';
-  if (lower === 'bahçelievler' || lower === 'bahcelievler') return 'istanbul-bahcelievler';
-  if (lower === 'ümraniye' || lower === 'umraniye') return 'istanbul-umraniye';
-  if (lower === 'esenler') return 'istanbul-esenler';
+  // Security: Limit length to prevent buffer/memory issues
+  const sanitized = text.slice(0, MAX_SLUG_LENGTH);
+  const lower = sanitized.toLowerCase().trim();
 
+  // Turkish character mapping to ASCII
   const map: { [key: string]: string } = {
     'ç': 'c', 'Ç': 'c', 'ğ': 'g', 'Ğ': 'g', 'ş': 's', 'Ş': 's',
     'ü': 'u', 'Ü': 'u', 'ı': 'i', 'İ': 'i', 'ö': 'o', 'Ö': 'o'
   };
-  return lower.replace(/[çğşüıö]/g, (char) => map[char]).replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+  return lower.replace(/[çğşüıöÇĞŞÜİÖ]/g, (char) => map[char] || char).replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 };
 
 export const fromSlug = (slug: string): string => {
-  // Reverse SEO Overrides for Districts
-  switch (slug) {
-    case 'ankara-cankaya': return 'Çankaya';
-    case 'istanbul-bagcilar': return 'Bağcılar';
-    case 'istanbul-uskudar': return 'Üsküdar';
-    case 'istanbul-bahcelievler': return 'Bahçelievler';
-    case 'istanbul-umraniye': return 'Ümraniye';
-    case 'istanbul-esenler': return 'Esenler';
+  // Security: Validate input
+  if (!slug || typeof slug !== 'string') return 'İstanbul';
+
+  // Security: Limit length and strip dangerous characters
+  const sanitized = slug.slice(0, MAX_SLUG_LENGTH).replace(/[^a-z0-9-]/gi, '').toLowerCase();
+
+  // Comprehensive Turkish City Name Mappings (All 81 Provinces + Popular Districts)
+  const TURKISH_NAMES: Record<string, string> = {
+    // === PROVINCES (81 İL) ===
+    // Marmara
+    'istanbul': 'İstanbul',
+    'bursa': 'Bursa',
+    'kocaeli': 'Kocaeli',
+    'sakarya': 'Sakarya',
+    'tekirdag': 'Tekirdağ',
+    'balikesir': 'Balıkesir',
+    'edirne': 'Edirne',
+    'kirklareli': 'Kırklareli',
+    'canakkale': 'Çanakkale',
+    'yalova': 'Yalova',
+    'bilecik': 'Bilecik',
+    // İç Anadolu
+    'ankara': 'Ankara',
+    'konya': 'Konya',
+    'kayseri': 'Kayseri',
+    'eskisehir': 'Eskişehir',
+    'sivas': 'Sivas',
+    'aksaray': 'Aksaray',
+    'nevsehir': 'Nevşehir',
+    'nigde': 'Niğde',
+    'kirsehir': 'Kırşehir',
+    'kirikkale': 'Kırıkkale',
+    'yozgat': 'Yozgat',
+    'karaman': 'Karaman',
+    'cankiri': 'Çankırı',
+    // Ege
+    'izmir': 'İzmir',
+    'denizli': 'Denizli',
+    'aydin': 'Aydın',
+    'mugla': 'Muğla',
+    'manisa': 'Manisa',
+    'afyonkarahisar': 'Afyonkarahisar',
+    'kutahya': 'Kütahya',
+    'usak': 'Uşak',
+    // Akdeniz
+    'antalya': 'Antalya',
+    'adana': 'Adana',
+    'mersin': 'Mersin',
+    'hatay': 'Hatay',
+    'kahramanmaras': 'Kahramanmaraş',
+    'osmaniye': 'Osmaniye',
+    'isparta': 'Isparta',
+    'burdur': 'Burdur',
+    // Karadeniz
+    'samsun': 'Samsun',
+    'trabzon': 'Trabzon',
+    'ordu': 'Ordu',
+    'giresun': 'Giresun',
+    'rize': 'Rize',
+    'artvin': 'Artvin',
+    'zonguldak': 'Zonguldak',
+    'kastamonu': 'Kastamonu',
+    'sinop': 'Sinop',
+    'amasya': 'Amasya',
+    'tokat': 'Tokat',
+    'corum': 'Çorum',
+    'bolu': 'Bolu',
+    'duzce': 'Düzce',
+    'karabuk': 'Karabük',
+    'bartin': 'Bartın',
+    'bayburt': 'Bayburt',
+    'gumushane': 'Gümüşhane',
+    // Doğu Anadolu
+    'erzurum': 'Erzurum',
+    'malatya': 'Malatya',
+    'elazig': 'Elazığ',
+    'van': 'Van',
+    'agri': 'Ağrı',
+    'erzincan': 'Erzincan',
+    'kars': 'Kars',
+    'igdir': 'Iğdır',
+    'ardahan': 'Ardahan',
+    'mus': 'Muş',
+    'bitlis': 'Bitlis',
+    'hakkari': 'Hakkari',
+    'bingol': 'Bingöl',
+    'tunceli': 'Tunceli',
+    // Güneydoğu Anadolu
+    'gaziantep': 'Gaziantep',
+    'diyarbakir': 'Diyarbakır',
+    'sanliurfa': 'Şanlıurfa',
+    'mardin': 'Mardin',
+    'batman': 'Batman',
+    'siirt': 'Siirt',
+    'sirnak': 'Şırnak',
+    'adiyaman': 'Adıyaman',
+    'kilis': 'Kilis',
+
+    // === POPULAR DISTRICTS (İLÇELER) ===
+    // İstanbul Districts (39 ilçe)
+    'kadikoy': 'Kadıköy',
+    'besiktas': 'Beşiktaş',
+    'sisli': 'Şişli',
+    'uskudar': 'Üsküdar',
+    'bakirkoy': 'Bakırköy',
+    'fatih': 'Fatih',
+    'beyoglu': 'Beyoğlu',
+    'sariyer': 'Sarıyer',
+    'maltepe': 'Maltepe',
+    'kartal': 'Kartal',
+    'pendik': 'Pendik',
+    'beylikduzu': 'Beylikdüzü',
+    'avcilar': 'Avcılar',
+    'esenyurt': 'Esenyurt',
+    'basaksehir': 'Başakşehir',
+    'bagcilar': 'Bağcılar',
+    'bahcelievler': 'Bahçelievler',
+    'umraniye': 'Ümraniye',
+    'esenler': 'Esenler',
+    'zeytinburnu': 'Zeytinburnu',
+    'gungoren': 'Güngören',
+    'buyukcekmece': 'Büyükçekmece',
+    'kucukcekmece': 'Küçükçekmece',
+    'sultangazi': 'Sultangazi',
+    'sancaktepe': 'Sancaktepe',
+    'atasehir': 'Ataşehir',
+    'tuzla': 'Tuzla',
+    'sultanbeyli': 'Sultanbeyli',
+    'kagithane': 'Kağıthane',
+    'eyupsultan': 'Eyüpsultan',
+    'arnavutkoy': 'Arnavutköy',
+    'cekmekoy': 'Çekmeköy',
+    'beykoz': 'Beykoz',
+    'silivri': 'Silivri',
+    'catalca': 'Çatalca',
+    'adalar': 'Adalar',
+    // Ankara Districts
+    'cankaya': 'Çankaya',
+    'kecioren': 'Keçiören',
+    'yenimahalle': 'Yenimahalle',
+    'mamak': 'Mamak',
+    'etimesgut': 'Etimesgut',
+    'sincan': 'Sincan',
+    'altindag': 'Altındağ',
+    'pursaklar': 'Pursaklar',
+    'golbasi': 'Gölbaşı',
+    'polatli': 'Polatlı',
+    'beypazari': 'Beypazarı',
+    'cubuk': 'Çubuk',
+    'haymana': 'Haymana',
+    // İzmir Districts
+    'buca': 'Buca',
+    'karsiyaka': 'Karşıyaka',
+    'bornova': 'Bornova',
+    'konak': 'Konak',
+    'karabaglar': 'Karabağlar',
+    'bayrakli': 'Bayraklı',
+    'cigli': 'Çiğli',
+    'menemen': 'Menemen',
+    'torbali': 'Torbalı',
+    'odemis': 'Ödemiş',
+    'bergama': 'Bergama',
+    'tire': 'Tire',
+    'seferihisar': 'Seferihisar',
+    'urla': 'Urla',
+    'cesme': 'Çeşme',
+    'alacati': 'Alaçatı',
+    // Antalya Districts
+    'muratpasa': 'Muratpaşa',
+    'kepez': 'Kepez',
+    'konyaalti': 'Konyaaltı',
+    'alanya': 'Alanya',
+    'manavgat': 'Manavgat',
+    'serik': 'Serik',
+    'kemer': 'Kemer',
+    'kas': 'Kaş',
+    'side': 'Side',
+    'belek': 'Belek',
+    'akseki': 'Akseki',
+    'elmali': 'Elmalı',
+    'finike': 'Finike',
+    'gazipasa': 'Gazipaşa',
+    'kumluca': 'Kumluca',
+    // Bursa Districts
+    'osmangazi': 'Osmangazi',
+    'yildirim': 'Yıldırım',
+    'nilufer': 'Nilüfer',
+    'inegol': 'İnegöl',
+    'gemlik': 'Gemlik',
+    'mudanya': 'Mudanya',
+    'gursu': 'Gürsu',
+    'kestel': 'Kestel',
+    'orhangazi': 'Orhangazi',
+    'iznik': 'İznik',
+    'karacabey': 'Karacabey',
+    'mustafakemalpasa': 'Mustafakemalpaşa',
+    // Kocaeli Districts  
+    'izmit': 'İzmit',
+    'gebze': 'Gebze',
+    'darica': 'Darıca',
+    'korfez': 'Körfez',
+    'derince': 'Derince',
+    'golcuk': 'Gölcük',
+    'kartepe': 'Kartepe',
+    'dilovasi': 'Dilovası',
+    'cayirova': 'Çayırova',
+    'basiskele': 'Başiskele',
+    'kandira': 'Kandıra',
+    // Adana Districts
+    'seyhan': 'Seyhan',
+    'yuregir': 'Yüreğir',
+    'cukurova': 'Çukurova',
+    'saricam': 'Sarıçam',
+    'ceyhan': 'Ceyhan',
+    'kozan': 'Kozan',
+    'imamoglu': 'İmamoğlu',
+    'karatas': 'Karataş',
+    'pozanti': 'Pozantı',
+    'tufanbeyli': 'Tufanbeyli',
+    // Mersin Districts
+    'akdeniz': 'Akdeniz',
+    'mezitli': 'Mezitli',
+    'yenisehir': 'Yenişehir',
+    'toroslar': 'Toroslar',
+    'tarsus': 'Tarsus',
+    'erdemli': 'Erdemli',
+    'silifke': 'Silifke',
+    'anamur': 'Anamur',
+    'mut': 'Mut',
+    'gulnar': 'Gülnar',
+    // Gaziantep Districts
+    'sehitkamil': 'Şehitkamil',
+    'sahinbey': 'Şahinbey',
+    'nizip': 'Nizip',
+    'islahiye': 'İslahiye',
+    'nurdagi': 'Nurdağı',
+    'oguzeli': 'Oğuzeli',
+    'araban': 'Araban',
+    // Konya Districts
+    'selcuklu': 'Selçuklu',
+    'meram': 'Meram',
+    'karatay': 'Karatay',
+    'eregli': 'Ereğli',
+    'aksehir': 'Akşehir',
+    'beysehir': 'Beyşehir',
+    'seydisehir': 'Seydişehir',
+    'cihanbeyli': 'Cihanbeyli',
+    'kulu': 'Kulu',
+    // Şanlıurfa Districts
+    'eyyubiye': 'Eyyübiye',
+    'haliliye': 'Haliliye',
+    'karakopru': 'Karaköprü',
+    'siverek': 'Siverek',
+    'viransehir': 'Viranşehir',
+    'akcakale': 'Akçakale',
+    'birecik': 'Birecik',
+    'suruc': 'Suruç',
+    'harran': 'Harran',
+    'hilvan': 'Hilvan',
+    // Diyarbakır Districts
+    'baglar': 'Bağlar',
+    'kayapinar': 'Kayapınar',
+    'sur': 'Sur',
+    'bismil': 'Bismil',
+    'ergani': 'Ergani',
+    'silvan': 'Silvan',
+    'cermik': 'Çermik',
+    'dicle': 'Dicle',
+    'lice': 'Lice',
+    'hazro': 'Hazro',
+    // Hatay Districts
+    'antakya': 'Antakya',
+    'iskenderun': 'İskenderun',
+    'defne': 'Defne',
+    'samandag': 'Samandağ',
+    'dortyol': 'Dörtyol',
+    'kirikhan': 'Kırıkhan',
+    'reyhanli': 'Reyhanlı',
+    'arsuz': 'Arsuz',
+    'belen': 'Belen',
+    // Kahramanmaraş Districts
+    'dulkadiroglu': 'Dulkadiroğlu',
+    'onikisbat': 'Onikişubat',
+    'elbistan': 'Elbistan',
+    'afsin': 'Afşin',
+    'turkoglu': 'Türkoğlu',
+    'goksun': 'Göksun',
+    'pazarcik': 'Pazarcık',
+    // Van Districts
+    'ipekyolu': 'İpekyolu',
+    'tusba': 'Tuşba',
+    'edremit': 'Edremit',
+    'ercis': 'Erciş',
+    'ozalp': 'Özalp',
+    'caldiran': 'Çaldıran',
+    'gevas': 'Gevaş',
+    'baskale': 'Başkale',
+    'muradiye': 'Muradiye',
+    // Sakarya Districts
+    'adapazari': 'Adapazarı',
+    'serdivan': 'Serdivan',
+    'erenler': 'Erenler',
+    'arifiye': 'Arifiye',
+    'hendek': 'Hendek',
+    'akyazi': 'Akyazı',
+    'karasu': 'Karasu',
+    'sapanca': 'Sapanca',
+    // Tekirdağ Districts
+    'corlu': 'Çorlu',
+    'suleymanpasa': 'Süleymanpaşa',
+    'cerkezkoy': 'Çerkezköy',
+    'ergene': 'Ergene',
+    'kapakli': 'Kapaklı',
+    'malkara': 'Malkara',
+    'hayrabolu': 'Hayrabolu',
+    'muratli': 'Muratlı',
+    'saray': 'Saray',
+    // Balıkesir Districts
+    'altieylul': 'Altıeylül',
+    'karesi': 'Karesi',
+    'bandirma': 'Bandırma',
+    'gonen': 'Gönen',
+    'ayvalik': 'Ayvalık',
+    'burhaniye': 'Burhaniye',
+    'susurluk': 'Susurluk',
+    // Manisa Districts
+    'sehzadeler': 'Şehzadeler',
+    'yunusemre': 'Yunusemre',
+    'turgutlu': 'Turgutlu',
+    'akhisar': 'Akhisar',
+    'salihli': 'Salihli',
+    'soma': 'Soma',
+    'alasehir': 'Alaşehir',
+    'saruhanli': 'Saruhanlı',
+    // Aydın Districts
+    'efeler': 'Efeler',
+    'nazilli': 'Nazilli',
+    'soke': 'Söke',
+    'kusadasi': 'Kuşadası',
+    'didim': 'Didim',
+    'cine': 'Çine',
+    'germencik': 'Germencik',
+    'incirliova': 'İncirliova',
+    // Muğla Districts
+    'mentese': 'Menteşe',
+    'bodrum': 'Bodrum',
+    'fethiye': 'Fethiye',
+    'marmaris': 'Marmaris',
+    'milas': 'Milas',
+    'dalaman': 'Dalaman',
+    'datca': 'Datça',
+    'koycegiz': 'Köyceğiz',
+    'ortaca': 'Ortaca',
+    'yatagan': 'Yatağan',
+    // Denizli Districts
+    'merkezefendi': 'Merkezefendi',
+    'pamukkale': 'Pamukkale',
+    'civril': 'Çivril',
+    'acipayam': 'Acıpayam',
+    'tavas': 'Tavas',
+    'honaz': 'Honaz',
+    'saraykoy': 'Sarayköy',
+    // Samsun Districts
+    'ilkadim': 'İlkadım',
+    'atakum': 'Atakum',
+    'canik': 'Canik',
+    'bafra': 'Bafra',
+    'carsamba': 'Çarşamba',
+    'terme': 'Terme',
+    'vezirkopru': 'Vezirköprü',
+    'havza': 'Havza',
+    // Trabzon Districts
+    'ortahisar': 'Ortahisar',
+    'akcaabat': 'Akçaabat',
+    'yomra': 'Yomra',
+    'arsin': 'Arsin',
+    'of': 'Of',
+    'arakli': 'Araklı',
+    'surmene': 'Sürmene',
+    'vakfikebir': 'Vakfıkebir',
+    'macka': 'Maçka',
+    // Kayseri Districts
+    'melikgazi': 'Melikgazi',
+    'kocasinan': 'Kocasinan',
+    'talas': 'Talas',
+    'develi': 'Develi',
+    'incesu': 'İncesu',
+    'yahyali': 'Yahyalı',
+    'bunyan': 'Bünyan',
+    'yesilhisar': 'Yeşilhisar',
+    // Eskişehir Districts
+    'odunpazari': 'Odunpazarı',
+    'tepebasi': 'Tepebaşı',
+    'sivrihisar': 'Sivrihisar',
+    'cifteler': 'Çifteler',
+    'mahmudiye': 'Mahmudiye',
+    'mihaliccik': 'Mihalıççık',
+    // Malatya Districts
+    'battalgazi': 'Battalgazi',
+    'yesilyurt': 'Yeşilyurt',
+    'dogansehir': 'Doğanşehir',
+    'akcadag': 'Akçadağ',
+    'darende': 'Darende',
+    'hekimhan': 'Hekimhan',
+    'arguvan': 'Arguvan',
+    // Erzurum Districts
+    'yakutiye': 'Yakutiye',
+    'aziziye': 'Aziziye',
+    'horasan': 'Horasan',
+    'pasinler': 'Pasinler',
+    'oltu': 'Oltu',
+    'ispir': 'İspir',
+    'tortum': 'Tortum',
+    'askale': 'Aşkale',
+    // Mardin Districts
+    'artuklu': 'Artuklu',
+    'kiziltepe': 'Kızıltepe',
+    'nusaybin': 'Nusaybin',
+    'midyat': 'Midyat',
+    'derik': 'Derik',
+    'mazidagi': 'Mazıdağı',
+    'savur': 'Savur',
+    'dargecit': 'Dargeçit',
+    // Batman Districts
+    'kozluk': 'Kozluk',
+    'sason': 'Sason',
+    'besiri': 'Beşiri',
+    'gercus': 'Gercüş',
+    'hasankeyf': 'Hasankeyf',
+    // Seasonal Spots
+    'uludag': 'Uludağ',
+    'erciyes': 'Erciyes',
+    'palandoken': 'Palandöken',
+    'saklikent': 'Saklıkent',
+    'davraz': 'Davraz',
+    'kartalkaya': 'Kartalkaya',
+    'ilgaz': 'Ilgaz',
+    // Tourist/Coastal spots
+    'urgup': 'Ürgüp',
+    'goreme': 'Göreme',
+    'cappadocia': 'Kapadokya',
+    'avanos': 'Avanos',
+    'derinkuyu': 'Derinkuyu',
+    // Nevşehir Districts
+    'kozakli': 'Kozaklı',
+    'gulsehir': 'Gülşehir',
+    'hacibektas': 'Hacıbektaş',
+  };
+
+  // Check for compound district slugs (e.g., istanbul-kadikoy)
+  if (sanitized.includes('-')) {
+    const parts = sanitized.split('-');
+    // If it's a district URL like "istanbul-kadikoy", return just the district name
+    if (parts.length === 2 && TURKISH_NAMES[parts[1]]) {
+      return TURKISH_NAMES[parts[1]];
+    }
+    // Handle parent-child format for breadcrumbs
+    if (parts.length === 2 && TURKISH_NAMES[parts[0]] && TURKISH_NAMES[parts[1]]) {
+      return TURKISH_NAMES[parts[1]];
+    }
   }
 
-  // Generic unslugify (Title Case) without DB lookup
-  return slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  // Direct lookup
+  if (TURKISH_NAMES[sanitized]) {
+    return TURKISH_NAMES[sanitized];
+  }
+
+  // Fallback: Generic unslugify (Title Case) - for unknown locations
+  return sanitized.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
 // --- GEOCODING FALLBACK ---
@@ -257,24 +715,46 @@ export const getCityFromCoords = async (lat: number, lon: number): Promise<strin
 // --- COORDINATE-BASED WEATHER FETCHING ---
 // Fetches weather directly by coordinates (most accurate)
 // displayCity is used for the WeatherData.city field for display purposes
+import { fetchWithCache } from './cacheService';
+
 export const getWeatherDataByCoords = async (
   lat: number,
   lon: number,
   displayCity: string
 ): Promise<WeatherData> => {
-  try {
-    // Use coordinates directly - no geocoding needed
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&forecast_hours=168&timezone=auto`;
+  // Security: Validate coordinate bounds
+  const isValidLat = typeof lat === 'number' && !isNaN(lat) && lat >= -90 && lat <= 90;
+  const isValidLon = typeof lon === 'number' && !isNaN(lon) && lon >= -180 && lon <= 180;
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Open-Meteo API Failed');
-    const data = await response.json();
-
-    return mapOpenMeteoToModel(displayCity, data);
-  } catch (e) {
-    console.warn("Coordinate weather fetch failed, using mock data", e);
-    return getMockWeatherData(displayCity);
+  if (!isValidLat || !isValidLon) {
+    console.warn(`Invalid coordinates: lat=${lat}, lon=${lon}. Using fallback.`);
+    return getMockWeatherData(displayCity || 'İstanbul');
   }
+
+  // Use Cache Wrapper: 60 Minutes TTL (Standard Weather Update Cycle)
+  // Round coords to 4 decimals for cache sharing sensitivity (~11m)
+  const cacheKey = `weather_v3_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+
+  return fetchWithCache(
+    cacheKey,
+    async () => {
+      try {
+        // Use coordinates directly - no geocoding needed
+        // UPDATED: forecast_hours=360 to cover full 15 days of hourly data (15 * 24 = 360) for Accordion
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover,visibility&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&forecast_hours=360&timezone=auto`;
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Open-Meteo API Failed');
+        const data = await response.json();
+
+        return mapOpenMeteoToModel(displayCity, data);
+      } catch (e) {
+        console.warn("Coordinate weather fetch failed, using mock data", e);
+        return getMockWeatherData(displayCity);
+      }
+    },
+    60 // 1 Hour TTL
+  );
 };
 
 
@@ -493,9 +973,10 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
   const currentRainProb = hourly.precipitation_probability[validIndex] || 0;
 
   const hourlyData: HourlyForecast[] = [];
-  // Capture up to 168 hours (7 days) for Weekend mode support
-  for (let i = validIndex; i < validIndex + 168 && i < hourly.time.length; i++) {
+  // Capture up to 360 hours (15 days) for Accordion support
+  for (let i = validIndex; i < validIndex + 360 && i < hourly.time.length; i++) {
     const timeStr = hourly.time[i];
+    const fullDate = timeStr.split('T')[0]; // YYYY-MM-DD
     const hTime = timeStr.split('T')[1].substring(0, 5);
     const code = hourly.weather_code[i];
     const isHourDay = hourly.is_day ? hourly.is_day[i] === 1 : true;
@@ -503,6 +984,7 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
 
     hourlyData.push({
       time: hTime,
+      fullDate: fullDate, // Store full date for grouping
       temp: hourly.temperature_2m[i],
       icon: getWeatherIcon(code, isHourDay, prob),
       precipProb: prob,
@@ -510,7 +992,8 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
       feelsLike: Math.round(hourly.apparent_temperature[i]),
       isDay: isHourDay,
       humidity: hourly.relative_humidity_2m[i] || 50, // Real humidity data
-      uvIndex: hourly.uv_index[i] || 0                // Real UV index data
+      uvIndex: hourly.uv_index[i] || 0,                // Real UV index data
+      visibility: (hourly.visibility && hourly.visibility[i]) ? Math.round(hourly.visibility[i] / 1000) : 10 // Convert m to km
     });
   }
 
@@ -519,6 +1002,7 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
     const dDate = new Date(daily.time[i]);
     const dayName = dDate.toLocaleDateString('tr-TR', { weekday: 'short' });
     const dateStr = dDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    const fullDate = daily.time[i].split('T')[0]; // ISO Date for matching
     const code = daily.weather_code[i];
     const prob = daily.precipitation_probability_max[i] || 0;
 
@@ -529,6 +1013,7 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
     dailyData.push({
       day: displayDay,
       date: dateStr,
+      fullDate: fullDate, // Store ISO date
       icon: getWeatherIcon(code, true, prob), // Passed prob
       high: Math.round(daily.temperature_2m_max[i]),
       low: Math.round(daily.temperature_2m_min[i]),
@@ -538,6 +1023,8 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
       humidity: 50,
       feelsLike: Math.round(daily.apparent_temperature_max[i] || daily.temperature_2m_max[i]), // New Mapping
       uvIndex: daily.uv_index_max ? Math.round(daily.uv_index_max[i]) : 0, // New Mapping
+      // Estimate daily visibility from hourly at noon (approx index i*24 + 12)
+      visibility: (hourly.visibility && hourly.visibility[i * 24 + 12]) ? Math.round(hourly.visibility[i * 24 + 12] / 1000) : 10
     });
   }
 
@@ -719,7 +1206,8 @@ const getMockWeatherData = (city: string): WeatherData => {
       feelsLike: baseTemp + Math.sin(i / 3) * 4,
       isDay: i % 24 >= 6 && i % 24 < 20,
       humidity: 50 + Math.round(Math.sin(i / 6) * 15), // Mock: 35-65% range
-      uvIndex: i % 24 >= 6 && i % 24 < 20 ? Math.max(0, 5 - Math.abs(12 - (i % 24)) * 0.5) : 0 // Mock: peaks midday
+      uvIndex: i % 24 >= 6 && i % 24 < 20 ? Math.max(0, 5 - Math.abs(12 - (i % 24)) * 0.5) : 0, // Mock: peaks midday
+      visibility: 10 // Mock Value in km
     })),
     // Align with API: Provide exactly 15 days
     daily: Array.from({ length: 15 }).map((_, i) => {
@@ -738,6 +1226,7 @@ const getMockWeatherData = (city: string): WeatherData => {
         humidity: 50,
         feelsLike: baseTemp + 2, // Mock Value
         uvIndex: 5, // Mock Value
+        visibility: 10 // Mock Value in km
       };
     })
   };
@@ -822,9 +1311,10 @@ export const getWeatherData = async (city: string): Promise<WeatherData> => {
         coords = { lat: geoResult.lat, lon: geoResult.lon };
         console.log(`📍 Geocoded "${finalCityName}" to (${coords.lat}, ${coords.lon})`);
       } else {
-        // Last resort: Turkey center
-        coords = { lat: 39.0, lon: 35.5 };
-        console.warn(`⚠️ Geocoding failed for "${finalCityName}", using Turkey center`);
+        // SINAN FIX: Return null for unknown cities instead of fallback
+        // This allows the UI to show "Konum Bulunamadı" error
+        console.warn(`⚠️ City not found: "${finalCityName}" - no static lookup or geocoding match`);
+        return null as any; // Signal city not found
       }
     }
 
@@ -841,7 +1331,8 @@ export const getWeatherData = async (city: string): Promise<WeatherData> => {
     console.warn("Direct Open-Meteo failed, using Mock Data", e);
   }
 
-  // FALLBACK 3: Mock Data
+  // FALLBACK 3: Mock Data (only for known cities that failed API)
+  // If we reach here, it means the city WAS found but API failed - use mock
   return getMockWeatherData(finalCityName);
 };
 

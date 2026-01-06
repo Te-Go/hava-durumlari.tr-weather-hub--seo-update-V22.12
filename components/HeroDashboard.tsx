@@ -1,16 +1,21 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { WeatherData } from '../types';
 import GlassCard from './GlassCard';
 import { WeatherIcon3D } from './Icons';
-import HourlyMeteogram from './HourlyMeteogram';
+// import HourlyMeteogram from './HourlyMeteogram'; // Lazy loaded below
 import AlertBar from './AlertBar';
 import { toSlug } from '../services/weatherService';
+import MeteogramSkeleton from './MeteogramSkeleton';
+
+// LCP Optimization: Lazy load heavy chart components
+const HourlyMeteogram = lazy(() => import('./HourlyMeteogram'));
+const DailyForecastChart = lazy(() => import('./DailyForecastChart'));
 
 interface HeroDashboardProps {
   data: WeatherData;
   badgeText?: string;
-  activeView: 'home' | 'tomorrow' | 'weekend';
-  onToggleView: (view: 'home' | 'tomorrow' | 'weekend') => void;
+  activeView: 'home' | 'tomorrow' | '15-days';
+  onToggleView: (view: 'home' | 'tomorrow' | '15-days') => void;
 }
 
 const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi", activeView, onToggleView }) => {
@@ -21,16 +26,26 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
   // Clean URLs (No query params)
   const homeHref = baseUrl;
   const tomorrowHref = `${baseUrl}/yarin`;
-  const weekendHref = `${baseUrl}/hafta-sonu`;
+  const fifteenDaysHref = `${baseUrl}/15-gunluk`;
 
   return (
     <div className="flex flex-col gap-4 mb-6">
 
+      {/* SEO: Semantic H1 (Visually Hidden) */}
+      <h1 className="sr-only">
+        {activeView === 'tomorrow'
+          ? `${data.city} Yarınki Hava Durumu`
+          : activeView === '15-days'
+            ? `${data.city} 15 Günlük Hava Durumu Tahmini`
+            : `${data.city} Hava Durumu`
+        }
+      </h1>
+
       <AlertBar data={data} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={`grid gap-4 ${activeView === '15-days' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
         {/* Current Weather (Left) */}
-        <GlassCard className="md:col-span-1 relative flex flex-col justify-between h-[360px]">
+        <GlassCard className={`relative flex flex-col justify-between h-[360px] ${activeView === '15-days' ? '' : 'md:col-span-1'}`}>
 
           <div className="flex flex-col gap-3 mb-2">
             {/* Toggle Control - Silo Navigation Links */}
@@ -51,20 +66,49 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
               >
                 Yarın
               </a>
+              {/* SINAN SEO: 5-Day Internal Link Anchor */}
               <a
-                href={weekendHref}
-                onClick={(e) => { e.preventDefault(); onToggleView('weekend'); }}
-                aria-current={activeView === 'weekend' ? 'page' : undefined}
-                className={`flex-1 py-2 rounded-lg text-[11px] font-bold text-center transition-all ${activeView === 'weekend' ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                href={`${fifteenDaysHref}#5-gunluk-detay`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onToggleView('15-days');
+
+                  // SINAN SCROLL CHASER: Handle lazy-load layout shifts
+                  const targetId = '5-gunluk-detay';
+                  let attempts = 0;
+                  const maxAttempts = 12; // Try for 1.2 seconds
+
+                  const chaseParams = () => {
+                    const el = document.getElementById(targetId);
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  };
+
+                  const chaser = setInterval(() => {
+                    attempts++;
+                    chaseParams();
+                    if (attempts >= maxAttempts) clearInterval(chaser);
+                  }, 100);
+                }}
+                className="flex-1 py-2 rounded-lg text-[11px] font-bold text-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-all border-l border-white/10 dark:border-white/5"
               >
-                Hafta Sonu
+                5 Günlük
+              </a>
+              <a
+                href={fifteenDaysHref}
+                onClick={(e) => { e.preventDefault(); onToggleView('15-days'); }}
+                aria-current={activeView === '15-days' ? 'page' : undefined}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-bold text-center transition-all ${activeView === '15-days' ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                15 Günlük
               </a>
             </div>
 
             {/* Status Badge */}
             <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full animate-pulse ${badgeText === 'Yarın' ? 'bg-indigo-500' : (badgeText === 'Hafta Sonu' ? 'bg-purple-500' : 'bg-blue-500')}`}></div>
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${badgeText === 'Yarın' ? 'text-indigo-600 dark:text-indigo-300' : (badgeText === 'Hafta Sonu' ? 'text-purple-600 dark:text-purple-300' : 'text-blue-600 dark:text-blue-300')}`}>
+              <div className={`w-2 h-2 rounded-full animate-pulse ${badgeText === 'Yarın' ? 'bg-indigo-500' : (badgeText === '15 Günlük' ? 'bg-purple-500' : 'bg-blue-500')}`}></div>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${badgeText === 'Yarın' ? 'text-indigo-600 dark:text-indigo-300' : (badgeText === '15 Günlük' ? 'text-purple-600 dark:text-purple-300' : 'text-blue-600 dark:text-blue-300')}`}>
                 GÖSTERİLEN: {badgeText.toUpperCase()}
               </span>
             </div>
@@ -73,9 +117,9 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
           <div>
             <div className="flex items-center justify-between mt-2">
               <div>
-                <h1 className="sinan-speakable-temp text-7xl font-light text-slate-800 dark:text-white tracking-tighter">
+                <div className="sinan-speakable-temp text-7xl font-light text-slate-800 dark:text-white tracking-tighter">
                   {Math.round(data.currentTemp)}°
-                </h1>
+                </div>
                 <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">{data.condition}</p>
               </div>
               <WeatherIcon3D type={data.icon} className="transform scale-150 mr-4" />
@@ -83,14 +127,21 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
           </div>
 
           <div className="mt-6">
-            <div className="bg-blue-50/50 dark:bg-slate-800/50 rounded-xl p-3 border border-blue-100/50 dark:border-slate-700">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase">Öneri</span>
+            <div className="bg-blue-50/50 dark:bg-slate-800/50 rounded-xl p-3 border border-blue-100/50 dark:border-slate-700 relative overflow-hidden">
+              {/* Background Icon */}
+              <div className="absolute -right-2 -bottom-4 opacity-10 dark:opacity-5 pointer-events-none">
+                <WeatherIcon3D type={data.icon} className="w-24 h-24 transform rotate-12" />
               </div>
-              <p className="sinan-speakable-summary text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                {data.smartPhrase}
-              </p>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-300 uppercase">Öneri</span>
+                </div>
+                <p className="sinan-speakable-summary text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                  {data.smartPhrase}
+                </p>
+              </div>
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 flex items-center justify-between">
               <span>Yüksek: {Math.round(data.high)}°</span>
@@ -99,13 +150,22 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
           </div>
         </GlassCard>
 
-        {/* 24-HOUR METEOGRAM (Right) */}
-        <div className="md:col-span-2">
-          <HourlyMeteogram
-            hourlyData={data.hourly}
-            sunrise={data.sunrise}
-            sunset={data.sunset}
-          />
+        {/* Right Column: Chart (swaps based on view) - Full width for 15-days */}
+        <div className={activeView === '15-days' ? 'w-full' : 'md:col-span-2'}>
+          <Suspense fallback={<MeteogramSkeleton />}>
+            {activeView === '15-days' ? (
+              <DailyForecastChart
+                dailyData={data.daily}
+                cityName={data.city}
+              />
+            ) : (
+              <HourlyMeteogram
+                hourlyData={data.hourly}
+                sunrise={data.sunrise}
+                sunset={data.sunset}
+              />
+            )}
+          </Suspense>
         </div>
       </div>
     </div>
@@ -113,3 +173,4 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
 };
 
 export default HeroDashboard;
+

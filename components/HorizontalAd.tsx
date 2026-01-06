@@ -2,6 +2,7 @@
 import React from 'react';
 import { CONFIG } from '../services/weatherService';
 import { Icon } from './Icons';
+import { sanitizeHtmlLight } from '../shared/sanitizeHtml';
 
 const HorizontalAd: React.FC = () => {
   return (
@@ -9,7 +10,7 @@ const HorizontalAd: React.FC = () => {
       {CONFIG.ads?.horizontal ? (
         <div
           className="w-full min-h-[100px] flex items-center justify-center bg-slate-50 dark:bg-slate-900"
-          dangerouslySetInnerHTML={{ __html: CONFIG.ads.horizontal }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtmlLight(CONFIG.ads.horizontal) }}
         />
       ) : (
         // Mock Content: Car Insurance (Contextual to Car Wash/Travel)

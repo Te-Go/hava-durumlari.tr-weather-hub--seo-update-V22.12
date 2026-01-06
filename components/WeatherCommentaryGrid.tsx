@@ -537,15 +537,16 @@ const WeatherCommentaryGrid: React.FC<WeatherCommentaryGridProps> = ({
                     </div>
                 )}
 
-                {/* Right Card: Tahmin Özeti (50% width) */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                {/* Right Card: Tahmin Özeti (Takes full width if FAQ is hidden) */}
+                <div className={`bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 ${(!showFAQ || commentary.faq.length === 0) ? 'md:col-span-2' : ''}`}>
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-1.5 h-6 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-full" />
                         <span className="text-base font-bold text-slate-700 dark:text-slate-200">
                             Tahmin Özeti
                         </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Grid adapts based on width */}
+                    <div className={`grid gap-3 ${(!showFAQ || commentary.faq.length === 0) ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'}`}>
                         {commentary.forecastTable.map((row) => (
                             <div
                                 key={row.metric}

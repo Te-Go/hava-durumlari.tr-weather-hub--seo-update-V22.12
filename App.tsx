@@ -25,6 +25,11 @@ import NetworkRibbon from './components/NetworkRibbon';
 import LocationSearchPage from './components/LocationSearchPage';
 import IslandDemo from './components/IslandDemo';
 import SeaTempPage from './components/SeaTempPage';
+import SEOBreadcrumb from './components/SEOBreadcrumb';
+import LastUpdated from './components/LastUpdated';
+import SEOFAQSection from './components/SEOFAQSection';
+import LocalDistrictsGrid from './components/LocalDistrictsGrid';
+import { Icon } from './components/Icons';
 
 // Islands & Services
 import { IslandPanel } from './islands';
@@ -39,6 +44,7 @@ import { calculateAltitudeData, isAltitudeRegion, getProvinceElevation, type Alt
 import { calculateFireRisk, isFireRiskRegion, shouldShowFireRisk, type FireRiskData } from './services/fireRiskService';
 import { calculateTourismComfort, isTourismRegion, type TourismData } from './services/tourismService';
 import { getIslandCategory } from './shared/provinceIslandMap';
+import { injectSEOSchemas } from './services/seoSchemaService';
 
 // TomTom API Key
 const TOMTOM_API_KEY = 'qUlGJOObY34eaqSXZto9H0OVWfGYqhP5';
@@ -46,7 +52,7 @@ const TOMTOM_API_KEY = 'qUlGJOObY34eaqSXZto9H0OVWfGYqhP5';
 type ViewState =
   | { type: 'home' }
   | { type: 'tomorrow' }
-  | { type: 'weekend' }
+  | { type: '15-days' }
   | { type: 'cities' }
   | { type: 'location-search' }
   | { type: 'island-demo' }
@@ -101,7 +107,7 @@ const RESERVED_PATHS = [
 const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
   // BULLETPROOF HYDRATION LOGIC
-  const getInitialState = (): { city: string; view: 'home' | 'tomorrow' | 'weekend' } => {
+  const getInitialState = (): { city: string; view: 'home' | 'tomorrow' | '15-days'; parentCity?: string } => {
 
     // ⛔️ PRIORITY 1: Server Injection (The "Truth")
     // If PHP (Asset Loader) injected the data object, use it.
@@ -119,7 +125,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
       if (root?.dataset.initialCity) {
         return {
           city: root.dataset.initialCity,
-          view: (root.dataset.initialView as 'home' | 'tomorrow' | 'weekend') || 'home'
+          view: (root.dataset.initialView as 'home' | 'tomorrow' | '15-days') || 'home'
         };
       }
     }
@@ -136,7 +142,23 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
         //  0        1            2          3
 
         // B. Index Correction (Sinan's Fix) - City is at [2]
-        const rawSlug = segments[2];
+        // CHECK FOR DISTRICT: /hava-durumu/city/district
+        const rawCitySlug = segments[2];
+        const rawNextSlug = segments[3];
+
+        console.log('[DEBUG] getInitialState segments:', segments);
+        console.log('[DEBUG] rawCitySlug:', rawCitySlug, 'rawNextSlug:', rawNextSlug);
+
+        let targetCity = rawCitySlug;
+        let parentParams = {};
+
+        if (rawNextSlug && !RESERVED_PATHS.includes(rawNextSlug) && rawNextSlug !== 'yarin' && rawNextSlug !== '15-gunluk' && rawNextSlug !== 'hafta-sonu') {
+          console.log('[DEBUG] District detected in getInitialState:', rawNextSlug);
+          targetCity = rawNextSlug;
+          parentParams = { parentCity: fromSlug(rawCitySlug) };
+        }
+
+        const rawSlug = targetCity;
 
         // C. Validation Gate
         if (rawSlug && !RESERVED_PATHS.includes(rawSlug)) {
@@ -144,11 +166,13 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
           if (/^[a-z0-9-]+$/.test(rawSlug)) {
 
             // D. View Detection
-            let view: 'home' | 'tomorrow' | 'weekend' = 'home';
+            let view: 'home' | 'tomorrow' | '15-days' = 'home';
             if (path.includes('/yarin')) view = 'tomorrow';
-            else if (path.includes('/hafta-sonu')) view = 'weekend';
+            else if (path.includes('/15-gunluk')) view = '15-days';
+            // Legacy fallback: redirect old weekend URLs to home
+            else if (path.includes('/hafta-sonu')) view = 'home';
 
-            return { city: fromSlug(rawSlug), view };
+            return { city: fromSlug(rawSlug), view, ...parentParams };
           }
         }
       }
@@ -174,6 +198,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   // Initialize state from bulletproof hydration
   const initialState = getInitialState();
   const [currentCity, setCurrentCity] = useState<string>(initialState.city);
+  const [parentCity, setParentCity] = useState<string | null>(initialState.parentCity || null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [marketData, setMarketData] = useState<MarketTicker[]>([]);
   const [articles, setArticles] = useState<NewsItem[]>([]);
@@ -199,6 +224,10 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     console.warn('🔴 [DEBUG-MOUNT] URL path:', window.location.pathname);
     console.warn('🔴 [DEBUG-MOUNT] Expected city from slug:', fromSlug(window.location.pathname.split('/').pop() || ''));
   }, []);
+
+  useEffect(() => {
+    console.log('🔴 [STATE-CHANGE] currentCity is now:', currentCity);
+  }, [currentCity]);
 
   // THEME STATE INITIALIZATION (Lazy Initializer)
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -303,6 +332,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
   }, [currentCity]); // Refetch articles when city changes
 
   // VIEW RESOLUTION & URL ROUTING (Runs once on mount)
+  // VIEW RESOLUTION & URL ROUTING (Runs once on mount)
   useEffect(() => {
     // View Resolution based on URL (Server routing support)
     // SINAN SILO PROTOCOL: /hava-durumu/city/view
@@ -333,63 +363,87 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     // Check for view in segment[2] or legacy paths
     const viewSegment = segments[2] || '';
     if (gunParam === 'yarin' || viewSegment === 'yarin' || path.includes('/yarin')) setView({ type: 'tomorrow' });
-    else if (gunParam === 'hafta-sonu' || viewSegment === 'hafta-sonu' || path.includes('/hafta-sonu')) setView({ type: 'weekend' });
+    else if (gunParam === '15-gunluk' || viewSegment === '15-gunluk' || path.includes('/15-gunluk')) setView({ type: '15-days' });
+    // Legacy: hafta-sonu redirects to home
+    else if (path.includes('/hafta-sonu')) setView({ type: 'home' });
 
     // SINAN SILO: Extract city from segment[1] (after /hava-durumu/)
     console.log('[DEBUG] Silo URL Parsing:', { path, segments });
+    // SINAN SILO: Extract city and district
     if (segments[0] === 'hava-durumu' && segments[1]) {
       const citySlug = segments[1];
-      if (citySlug !== 'yarin' && citySlug !== 'hafta-sonu') {
-        const city = fromSlug(citySlug);
-        console.log('[DEBUG] Silo City resolved:', { citySlug, city });
-        if (city) setCurrentCity(city);
+      const nextSlug = segments[2];
+      console.log('[DEBUG] useEffect Parsing - City:', citySlug, 'Next:', nextSlug);
+
+      if (nextSlug && nextSlug !== 'yarin' && nextSlug !== '15-gunluk' && nextSlug !== 'hafta-sonu') {
+        // District detected
+        console.log('[DEBUG] District detected in useEffect:', nextSlug);
+        setCurrentCity(fromSlug(nextSlug));
+        setParentCity(fromSlug(citySlug));
+      } else if (citySlug !== 'yarin' && citySlug !== 'hafta-sonu') {
+        console.log('[DEBUG] City detected in useEffect:', citySlug);
+        setCurrentCity(fromSlug(citySlug));
+        setParentCity(null);
       }
     } else {
       // Legacy fallback: last segment is city
       const citySlug = segments[segments.length - 1];
       if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
         const city = fromSlug(citySlug);
-        if (city) setCurrentCity(city);
+        if (city) {
+          setCurrentCity(city);
+          setParentCity(null);
+        }
       }
     }
 
     // SPA Routing: Handle browser back/forward without full reload
     const handlePopState = () => {
-      const path = window.location.pathname;
-      const urlParams = new URLSearchParams(window.location.search);
-      const gunParam = urlParams.get('gun');
-      const segments = path.split('/').filter(Boolean);
+      const pPath = window.location.pathname;
+      const pUrlParams = new URLSearchParams(window.location.search);
+      const pGunParam = pUrlParams.get('gun');
+      const pSegments = pPath.split('/').filter(Boolean);
 
       // SINAN SILO: Determine view from segment[2] or legacy path
-      const viewSegment = segments[2] || '';
-      if (gunParam === 'yarin' || viewSegment === 'yarin' || path.includes('/yarin')) {
+      const pViewSegment = pSegments[2] || '';
+      if (pGunParam === 'yarin' || pViewSegment === 'yarin' || pPath.includes('/yarin')) {
         setView({ type: 'tomorrow' });
-      } else if (gunParam === 'hafta-sonu' || viewSegment === 'hafta-sonu' || path.includes('/hafta-sonu')) {
-        setView({ type: 'weekend' });
+      } else if (pGunParam === '15-gunluk' || pViewSegment === '15-gunluk' || pPath.includes('/15-gunluk')) {
+        setView({ type: '15-days' });
       } else {
         setView({ type: 'home' });
       }
 
-      // SINAN SILO: Extract city from segment[1]
-      if (segments[0] === 'hava-durumu' && segments[1]) {
-        const citySlug = segments[1];
-        if (citySlug !== 'yarin' && citySlug !== 'hafta-sonu') {
-          const city = fromSlug(citySlug);
-          if (city) setCurrentCity(city);
+      // SINAN SILO: Extract city and district
+      if (pSegments[0] === 'hava-durumu' && pSegments[1]) {
+        const pCitySlug = pSegments[1];
+        const pNextSlug = pSegments[2];
+
+        if (pNextSlug && pNextSlug !== 'yarin' && pNextSlug !== '15-gunluk' && pNextSlug !== 'hafta-sonu') {
+          setCurrentCity(fromSlug(pNextSlug));
+          setParentCity(fromSlug(pCitySlug));
+        } else if (pCitySlug !== 'yarin' && pCitySlug !== 'hafta-sonu') {
+          setCurrentCity(fromSlug(pCitySlug));
+          setParentCity(null);
         }
       } else {
         // Legacy fallback
-        const citySlug = segments[segments.length - 1];
-        if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu') {
-          const city = fromSlug(citySlug);
-          if (city) setCurrentCity(city);
+        const pCitySlug = pSegments[pSegments.length - 1];
+        if (pCitySlug && pCitySlug !== 'yarin' && pCitySlug !== 'hafta-sonu' && pCitySlug !== 'hava-durumu') {
+          const city = fromSlug(pCitySlug);
+          if (city) {
+            setCurrentCity(city);
+            setParentCity(null);
+          }
         }
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []); // Run once on mount
+  }, []);
+
+  console.log('🔴 [RENDER] App Component Rendered. currentCity:', currentCity, 'parentCity:', parentCity); // Run once on mount
 
   // Watch for locationId prop changes specifically (Dynamic Updates / Single Page Transitions if parent updates)
   // Watch for locationId prop changes (Dynamic Updates from WordPress parent)
@@ -400,8 +454,23 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
       // Check if URL already specifies a city
       const path = window.location.pathname;
       const segments = path.split('/').filter(Boolean);
-      const citySlug = segments[segments.length - 1];
-      const urlHasCity = citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu' && citySlug !== 'hava-durumu' && fromSlug(citySlug);
+
+      // SINAN FIX: Better URL validation to prevent overwrite
+      let urlHasCity = false;
+
+      if (segments.length >= 2 && segments[0] === 'hava-durumu') {
+        // Check segment[1] (City)
+        const citySlug = segments[1];
+        // Check segment[2] (District or View)
+        const nextSlug = segments[2];
+
+        if (citySlug && citySlug !== 'yarin' && citySlug !== 'hafta-sonu') {
+          urlHasCity = true;
+        }
+        if (nextSlug && nextSlug !== 'yarin' && nextSlug !== '15-gunluk' && nextSlug !== 'hafta-sonu') {
+          urlHasCity = true;
+        }
+      }
 
       // Only use locationId if URL doesn't have a valid city
       if (!urlHasCity) {
@@ -573,7 +642,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     };
 
     // Only fetch if we are in a main weather view
-    if (view.type === 'home' || view.type === 'tomorrow' || view.type === 'weekend') {
+    if (view.type === 'home' || view.type === 'tomorrow' || view.type === '15-days') {
       fetchData();
     }
 
@@ -599,16 +668,27 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
     const cityDisplay = fromSlug(toSlug(currentCity)); // Ensure Turkish chars (İstanbul not Istanbul)
 
+    // Dynamic month name for SEO freshness
+    const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const currentMonth = monthNames[new Date().getMonth()];
+    const currentYear = new Date().getFullYear();
+
     let pageTitle = '';
     if (view.type === 'tomorrow') {
-      pageTitle = `${cityDisplay} Yarınki Hava Durumu - 15 Günlük Tahmin | TG`;
-    } else if (view.type === 'weekend') {
-      pageTitle = `Hafta Sonu ${cityDisplay} Hava Durumu ve Raporu | TG`;
+      pageTitle = `${cityDisplay} Yarınki Hava Durumu - Saatlik Detaylı Rapor | TG`;
+    } else if (view.type === '15-days') {
+      pageTitle = `${cityDisplay} 15 Günlük Hava Durumu - ${currentMonth} ${currentYear} Trendi | TG`;
     } else {
-      pageTitle = `${cityDisplay} Hava Durumu - 15 Günlük Tahmin | TG`;
+      pageTitle = `${cityDisplay} Hava Durumu - Saatlik ve Günlük Tahmin | TG`;
     }
 
     document.title = pageTitle;
+
+    // SINAN SEO: Inject dynamic JSON-LD schemas and meta description
+    if (view.type === 'home' || view.type === 'tomorrow' || view.type === '15-days') {
+      injectSEOSchemas(cityDisplay, view.type, weatherData);
+    }
+
     trackEvent('view_weather', 'city', currentCity);
   }, [weatherData, view.type, currentCity, isManualTheme]);
 
@@ -623,7 +703,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     // SINAN SILO PROTOCOL: /hava-durumu/city/view
     let path = `/hava-durumu/${slug}`;
     if (view.type === 'tomorrow') path += '/yarin';
-    else if (view.type === 'weekend') path += '/hafta-sonu';
+    else if (view.type === '15-days') path += '/15-gunluk';
 
     window.history.pushState({ city: prettyName }, '', path);
     trackEvent('change_city', 'navigation', prettyName);
@@ -633,14 +713,14 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     }, 200);
   };
 
-  const handleViewToggle = (newView: 'home' | 'tomorrow' | 'weekend') => {
+  const handleViewToggle = (newView: 'home' | 'tomorrow' | '15-days') => {
     setView({ type: newView });
     const slug = toSlug(currentCity);
 
     // SINAN SILO PROTOCOL: /hava-durumu/city/view
     let path = `/hava-durumu/${slug}`;
     if (newView === 'tomorrow') path += '/yarin';
-    else if (newView === 'weekend') path += '/hafta-sonu';
+    else if (newView === '15-days') path += '/15-gunluk';
 
     window.history.pushState({ city: currentCity }, '', path);
     trackEvent('toggle_view', 'hero', newView);
@@ -660,9 +740,9 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
       setView({ type: 'tomorrow' });
       window.history.pushState({ city: currentCity }, '', `/hava-durumu/${slug}/yarin`);
     }
-    else if (dest === 'weekend') {
-      setView({ type: 'weekend' });
-      window.history.pushState({ city: currentCity }, '', `/hava-durumu/${slug}/hafta-sonu`);
+    else if (dest === '15-days') {
+      setView({ type: '15-days' });
+      window.history.pushState({ city: currentCity }, '', `/hava-durumu/${slug}/15-gunluk`);
     }
     else if (dest === 'cities') {
       setView({ type: 'cities' });
@@ -679,11 +759,11 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     switch (view.type) {
       case 'home':
       case 'tomorrow':
-      case 'weekend':
+      case '15-days':
         let displayData = weatherData;
         if (weatherData) {
           if (view.type === 'tomorrow') displayData = getTomorrowDashboardData(weatherData);
-          else if (view.type === 'weekend') displayData = getWeekendDashboardData(weatherData);
+          // 15-days uses full weatherData (no transformation needed)
         }
 
         return (
@@ -696,9 +776,13 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
               onToggleTheme={toggleTheme}
               activeView={view.type}
             />
-            {/* Answer Summary Bar - Between City Rail and Hero */}
-            {displayData && (() => {
-              const timeframe: Timeframe = view.type === 'tomorrow' ? 'tomorrow' : (view.type === 'weekend' ? 'weekend' : 'today');
+            {/* SINAN UX: District Rail - Positioned directly under City Rail for city→district flow */}
+            <LocalDistrictsGrid city={currentCity} view={view.type} />
+            {/* SEO Breadcrumb Navigation - Always Visible */}
+            <SEOBreadcrumb cityName={currentCity} view={view.type} parentCity={parentCity || undefined} />
+            {/* Answer Summary Bar - Between City Rail and Hero - HIDDEN in 15-days view */}
+            {view.type !== '15-days' && displayData && (() => {
+              const timeframe: Timeframe = view.type === 'tomorrow' ? 'tomorrow' : 'today';
               const commentary = generateWeatherCommentary(displayData, timeframe);
               return (
                 <AnswerSummaryBar
@@ -708,61 +792,126 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                 />
               );
             })()}
-            {loading || !displayData ? (
+            {loading ? (
               <div className="flex items-center justify-center min-h-[50vh]"><div className="w-16 h-16 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div></div>
+            ) : !displayData ? (
+              /* SINAN FIX: Show Location Not Found error - matching LocationSearchPage style */
+              <div className="flex items-center justify-center min-h-[50vh] px-4">
+                <div className="w-full max-w-md bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/60 dark:border-slate-700 p-8 text-center">
+                  <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Icon.MapPin className="w-10 h-10 text-red-500" />
+                  </div>
+                  <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
+                    Konum Bulunamadı
+                  </h1>
+                  <p className="text-slate-600 dark:text-slate-300 mb-6">
+                    Aradığınız konum veritabanımızda bulunamadı.
+                  </p>
+                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 mb-6 text-left">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Öneriler:</p>
+                    <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
+                      <li>• Şehir veya ilçe adını kontrol edin</li>
+                      <li>• Türkçe karakterleri kullanmayı deneyin</li>
+                      <li>• Daha genel bir konum adı deneyin</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => window.history.back()}
+                      className="flex-1 px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                    >
+                      ← Geri
+                    </button>
+                    <a
+                      href="/"
+                      className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors text-center"
+                    >
+                      Ana Sayfa
+                    </a>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="animate-fadeIn mt-4">
                 <HeroDashboard
                   data={displayData}
-                  badgeText={view.type === 'tomorrow' ? 'Yarın' : (view.type === 'weekend' ? 'Hafta Sonu' : 'Şimdi')}
+                  badgeText={view.type === 'tomorrow' ? 'Yarın' : (view.type === '15-days' ? '15 Günlük' : 'Şimdi')}
                   activeView={view.type}
                   onToggleView={handleViewToggle}
                 />
-                <WeatherCommentaryGrid
-                  weatherData={displayData}
-                  initialTimeframe={view.type === 'tomorrow' ? 'tomorrow' : (view.type === 'weekend' ? 'weekend' : 'today')}
-                  showTimeframeSelector={false}
-                  showFAQ={true}
-                  showDailySummary={true}
-                  className="mb-8"
-                />
+                {/* Last Updated Timestamp - SEO Freshness Signal */}
+                <LastUpdated className="mb-4" />
 
-                {/* SINAN ISLANDS: Unified Contextual Widget Panel */}
-                <div className="mb-8 animate-fadeIn delay-100">
-                  <IslandPanel
-                    traffic={trafficData}
-                    marine={marineData}
-                    ski={skiData}
-                    agriculture={agricultureData}
-                    altitude={altitudeData}
-                    fireRisk={fireRiskData}
-                    tourism={tourismData}
-                    cityDisplay={currentCity}
-                    trafficCityDisplay={trafficCityDisplay}
-                    marineCityDisplay={marineCityDisplay}
-                    fallbackNarrative={generateWeatherCommentary(displayData, view.type === 'tomorrow' ? 'tomorrow' : view.type === 'weekend' ? 'weekend' : 'today').answerBlock}
-                    showNarration={true}
+                {/* 15 Günlük Tahmin - Moved up for 15-days view, positioned right after Hero */}
+                {view.type === '15-days' && (
+                  <ForecastSection data={displayData} focusTomorrow={false} />
+                )}
+
+                {/* Weather Commentary Grid - HIDDEN in 15-days view to avoid duplication */}
+                {view.type !== '15-days' && (
+                  <WeatherCommentaryGrid
+                    weatherData={displayData}
+                    initialTimeframe={view.type === 'tomorrow' ? 'tomorrow' : 'today'}
+                    showTimeframeSelector={false}
+                    showFAQ={false}
+                    showDailySummary={true}
+                    className="mb-8"
                   />
-                </div>
-                {/* Side-by-side: Lifestyle (left 50%) + Radar (right 50%) on desktop */}
-                <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6">
-                  <div className="w-full md:w-1/2">
-                    <LifestyleRail data={displayData} />
+                )}
+
+                {/* SINAN ISLANDS: Unified Contextual Widget Panel - HIDDEN in 15-days view */}
+                {/* SINAN ISLANDS: Unified Contextual Widget Panel - HIDDEN in 15-days view */}
+                {view.type !== '15-days' && (
+                  <div className="mb-8 animate-fadeIn delay-100">
+                    <LazySection>
+                      <IslandPanel
+                        traffic={trafficData}
+                        marine={marineData}
+                        ski={skiData}
+                        agriculture={agricultureData}
+                        altitude={altitudeData}
+                        fireRisk={fireRiskData}
+                        tourism={tourismData}
+                        cityDisplay={currentCity}
+                        trafficCityDisplay={trafficCityDisplay}
+                        marineCityDisplay={marineCityDisplay}
+                        fallbackNarrative={generateWeatherCommentary(displayData, view.type === 'tomorrow' ? 'tomorrow' : 'today').answerBlock}
+                        showNarration={true}
+                      />
+                    </LazySection>
                   </div>
-                  <div className="w-full md:w-1/2">
-                    <RadarNews
-                      articles={articles}
-                      weatherData={displayData}
-                      compact={true}
-                    />
+                )}
+                {/* Side-by-side: Lifestyle (left 50%) + Radar (right 50%) on desktop - HIDDEN in 15-days view */}
+                {view.type !== '15-days' && (
+                  <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6">
+                    <div className="w-full md:w-1/2">
+                      <LifestyleRail data={displayData} />
+                    </div>
+                    <div className="w-full md:w-1/2">
+                      <RadarNews
+                        articles={articles}
+                        weatherData={displayData}
+                        compact={true}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Weather-Triggered Contextual Ad Unit */}
                 <WeatherTriggeredAd weatherData={displayData} />
 
-                <ForecastSection data={displayData} focusTomorrow={view.type === 'tomorrow'} />
-                <HistoricalChart weatherData={displayData} />
+                {/* ForecastSection - Only show here for non-15-days views (already shown above for 15-days) */}
+                {view.type !== '15-days' && (
+                  <ForecastSection data={weatherData || displayData} focusTomorrow={view.type === 'tomorrow'} />
+                )}
+
+                {/* SEO FAQ Section - Shows for all views (with different focus) */}
+                <SEOFAQSection cityName={currentCity} data={displayData} className="mb-8" />
+
+                {/* Historical Chart (Hava Durumu Eğilimleri) - HIDDEN in 15-days view */}
+                {view.type !== '15-days' && (
+                  <HistoricalChart weatherData={displayData} />
+                )}
                 <LazySection
                   placeholder={<div className="min-h-[300px] animate-pulse bg-slate-100/50 dark:bg-slate-800/50 rounded-xl mt-6 mb-6" />}
                 >
@@ -775,6 +924,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                 */}
               </div>
             )}
+
           </>
         );
       case 'location-search':

@@ -52,6 +52,52 @@ const SeaTempPage: React.FC<SeaTempPageProps> = ({ onCityChange }) => {
         loadData();
     }, []);
 
+    // SEO: Title, Meta, Schema
+    useEffect(() => {
+        document.title = "Türkiye Deniz Suyu Sıcaklığı - Güncel Veriler | TG";
+
+        // Update Meta Description
+        let metaDesc = document.querySelector('meta[name="description"]');
+        if (!metaDesc) {
+            metaDesc = document.createElement('meta');
+            metaDesc.setAttribute('name', 'description');
+            document.head.appendChild(metaDesc);
+        }
+        metaDesc.setAttribute('content', 'Marmara, Ege, Akdeniz ve Karadeniz deniz suyu sıcaklıkları. İl il yüzme ve deniz durumu, dalga yüksekliği ve güncel deniz raporları.');
+
+        // Inject Breadcrumb Schema
+        const schema = {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Hava Durumu",
+                    "item": "https://hava-durumlari.tr/"
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "Deniz Suyu Sıcaklığı",
+                    "item": "https://hava-durumlari.tr/deniz-suyu-sicakligi"
+                }
+            ]
+        };
+
+        const script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.text = JSON.stringify(schema);
+        document.head.appendChild(script);
+
+        return () => {
+            // Cleanup schema on unmount
+            if (document.head.contains(script)) {
+                document.head.removeChild(script);
+            }
+        };
+    }, []);
+
     const handleLocationClick = (city: string) => {
         window.history.pushState({}, '', `/hava-durumu/${toSlug(city)}`);
         onCityChange(city);

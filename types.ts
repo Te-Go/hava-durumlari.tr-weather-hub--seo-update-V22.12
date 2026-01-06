@@ -34,6 +34,8 @@ export interface HourlyForecast {
   isDay: boolean;    // true = day, false = night (for shading)
   humidity: number;  // Relative humidity %
   uvIndex: number;   // UV index (0-11+)
+  visibility: number; // Visibility in km
+  fullDate?: string; // ISO Date (YYYY-MM-DD) for grouping
 }
 
 export interface DailyForecast {
@@ -46,8 +48,10 @@ export interface DailyForecast {
   rainProb: number;
   wind: string;
   humidity: number;
-  feelsLike: number; // New: Apparent Temp Max
-  uvIndex: number;   // New: Max UV Index
+  feelsLike: number; // Apparent Temp Max
+  uvIndex: number;   // Max UV Index
+  visibility: number; // Visibility in km
+  fullDate?: string; // ISO Date (YYYY-MM-DD) for matching
 }
 
 export interface NewsItem {

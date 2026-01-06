@@ -25,8 +25,8 @@ const NetworkWidget: React.FC<NetworkWidgetProps> = ({ marketData }) => {
         {
             id: 'gold',
             name: 'Gram Altın',
-            subtitle: 'Canlı Fiyat',
-            value: marketData?.gold || '2.450 ₺',
+            subtitle: 'Çok Yakında',
+            value: marketData?.gold || '—',
             logo: HUB_LOGOS.gold,
             href: 'https://altin-fiyatlari.tr',
             bgColor: 'bg-amber-50 dark:bg-amber-900/20',
@@ -34,8 +34,8 @@ const NetworkWidget: React.FC<NetworkWidgetProps> = ({ marketData }) => {
         {
             id: 'forex',
             name: 'Dolar/TL',
-            subtitle: 'Serbest Piyasa',
-            value: marketData?.dollar || '32,45 ₺',
+            subtitle: 'Çok Yakında',
+            value: marketData?.dollar || '—',
             logo: HUB_LOGOS.forex,
             href: 'https://doviz-kurlari.tr',
             bgColor: 'bg-green-50 dark:bg-green-900/20',
@@ -43,8 +43,8 @@ const NetworkWidget: React.FC<NetworkWidgetProps> = ({ marketData }) => {
         {
             id: 'bourse',
             name: 'BIST 100',
-            subtitle: 'Borsa İstanbul',
-            value: marketData?.bist || '9.850',
+            subtitle: 'Çok Yakında',
+            value: marketData?.bist || '—',
             logo: HUB_LOGOS.bourse,
             href: 'https://bist-100.tr',
             bgColor: 'bg-blue-50 dark:bg-blue-900/20',
@@ -52,8 +52,8 @@ const NetworkWidget: React.FC<NetworkWidgetProps> = ({ marketData }) => {
         {
             id: 'crypto',
             name: 'Bitcoin',
-            subtitle: 'Kripto Piyasa',
-            value: marketData?.bitcoin || '$75.000',
+            subtitle: 'Çok Yakında',
+            value: marketData?.bitcoin || '—',
             logo: HUB_LOGOS.crypto,
             href: 'https://kripto-paralar.tr',
             bgColor: 'bg-orange-50 dark:bg-orange-900/20',
@@ -67,9 +67,8 @@ const NetworkWidget: React.FC<NetworkWidgetProps> = ({ marketData }) => {
                 <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
                     Piyasa Özeti
                 </span>
-                <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Canlı</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                    Çok Yakında
                 </span>
             </div>
 

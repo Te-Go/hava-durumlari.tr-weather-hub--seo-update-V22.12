@@ -75,24 +75,29 @@ function generateTrendAnalysis(data: DailyForecast[], cityName: string): {
     if (tempDiff > 3) trend = 'warming';
     else if (tempDiff < -3) trend = 'cooling';
 
-    // Generate summary text
+    // Generate summary text with SEO-optimized keywords
+    const currentMonth = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+        'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'][new Date().getMonth()];
+    const currentYear = new Date().getFullYear();
+
     const trendText = trend === 'warming'
-        ? 'Sıcaklıklar yükseliş eğiliminde.'
+        ? 'Sıcaklıklar yükseliş eğiliminde, ılıman günler bekleniyor.'
         : trend === 'cooling'
-            ? 'Önümüzdeki günlerde soğuma bekleniyor.'
-            : 'Sıcaklıklar genel olarak stabil kalacak.';
+            ? 'Önümüzdeki günlerde soğuma bekleniyor, sıcak giyinmeyi unutmayın.'
+            : 'Sıcaklıklar genel olarak stabil kalacak, mevsim normallerinde seyredecek.';
 
     const rainText = rainyDays === 0
-        ? 'Yağmur beklenmiyor.'
+        ? 'Önümüzdeki 15 gün yağış beklenmiyor, açık havada etkinlikler için uygun.'
         : rainyDays === 1
-            ? '1 gün yağış olasılığı var.'
-            : `${rainyDays} gün yağışlı geçebilir.`;
+            ? '1 gün yağış olasılığı var, şemsiyenizi yanınıza alın.'
+            : `${rainyDays} gün yağışlı geçebilir, dış mekan planlarınızda dikkate alın.`;
 
-    const tempRangeText = `Sıcaklıklar ${Math.round(minLow)}° ile ${Math.round(maxHigh)}° arasında seyredecek.`;
+    const tempRangeText = `${currentMonth} ${currentYear} için ${cityName} hava durumu: Sıcaklıklar ${Math.round(minLow)}°C ile ${Math.round(maxHigh)}°C arasında seyredecek.`;
 
-    const extremeText = `En sıcak gün ${warmestDay.day} (${Math.round(warmestDay.high)}°), en soğuk gece ${coldestDay.day} (${Math.round(coldestDay.low)}°).`;
+    const extremeText = `En sıcak gün ${warmestDay.day} (${Math.round(warmestDay.high)}°C), en soğuk gece ${coldestDay.day} (${Math.round(coldestDay.low)}°C) olacak.`;
 
-    const summary = `${cityName} için 15 günlük tahmin özeti: ${tempRangeText} ${trendText} ${rainText} ${extremeText}`;
+    const summary = `${tempRangeText} ${trendText} ${rainText} ${extremeText}`;
+
 
     return {
         summary,
@@ -274,7 +279,7 @@ const DailyForecastChart: React.FC<DailyForecastChartProps> = ({ dailyData, city
                                 </span>
 
                                 {/* Precipitation */}
-                                <div className="flex flex-col items-center mt-2">
+                                <div className="flex flex-col items-center mt-2 gap-1">
                                     {day.rainProb > 0 ? (
                                         <div className="flex items-center gap-0.5">
                                             <Icon.Droplets size={10} className="text-blue-400" />
@@ -283,6 +288,13 @@ const DailyForecastChart: React.FC<DailyForecastChartProps> = ({ dailyData, city
                                     ) : (
                                         <span className="text-[10px] text-slate-300 dark:text-slate-600">-</span>
                                     )}
+                                    {/* Wind Speed */}
+                                    <div className="flex items-center gap-0.5">
+                                        <Icon.Wind size={10} className="text-slate-400" />
+                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                            {day.wind?.split(' ')[0] || '0'} km/sa
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -303,6 +315,10 @@ const DailyForecastChart: React.FC<DailyForecastChartProps> = ({ dailyData, city
                         <div className="flex items-center gap-1">
                             <Icon.Droplets size={10} className="text-blue-400" />
                             <span>Yağış %</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Icon.Wind size={10} className="text-slate-400" />
+                            <span>Rüzgar</span>
                         </div>
                     </div>
                     <span className="text-slate-400">
@@ -329,12 +345,14 @@ const DailyForecastChart: React.FC<DailyForecastChartProps> = ({ dailyData, city
                         {/* Quick Badges */}
                         <div className="flex items-center gap-2 flex-wrap">
                             {/* Trend Badge */}
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${stats.trend === 'warming'
-                                ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
-                                : stats.trend === 'cooling'
-                                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
-                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                                }`}>
+                            <span
+                                title={stats.trend === 'warming' ? '>3°C Sıcaklık Artışı' : stats.trend === 'cooling' ? '>3°C Sıcaklık Düşüşü' : '±3°C Stabil Sıcaklık'}
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium cursor-help ${stats.trend === 'warming'
+                                    ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
+                                    : stats.trend === 'cooling'
+                                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                    }`}>
                                 {getTrendIcon()}
                                 {stats.trend === 'warming' ? 'Isınma Trendi' : stats.trend === 'cooling' ? 'Soğuma Trendi' : 'Stabil'}
                             </span>

@@ -114,97 +114,155 @@ const IslandPanel: React.FC<IslandPanelProps> = ({
         );
     }
 
-    // Dynamic grid classes
-    // Mobile: stack vertically
-    // Desktop: 2-col grid for 2+ widgets, centered single widget for 1
-    const gridClasses = widgetCount === 1
-        ? 'flex flex-col items-center'
-        : 'flex flex-col md:grid md:grid-cols-2 gap-4';
-
-    const singleWidgetClasses = widgetCount === 1
-        ? 'w-full md:max-w-lg'
-        : 'w-full';
+    // SPECIAL LAYOUT: Stacked Traffic/Marine + Full Height Tourism
+    // Condition: We have Tourism AND at least one of Traffic/Marine
+    const isStackedLayout = hasTourism && (hasTraffic || hasMarine);
 
     return (
         <>
-            <div className={`mt-6 ${gridClasses}`}>
-                {/* Traffic Widget */}
-                {hasTraffic && (
-                    <div className={`${singleWidgetClasses} ${widgetCount > 1 ? 'mb-4 md:mb-0' : ''}`}>
-                        <TrafficWidget
-                            city={cityDisplay}
-                            cityDisplay={trafficCityDisplay || cityDisplay}
-                            data={traffic}
-                            narrative={trafficNarrative}
-                            lastUpdated={lastUpdated}
-                        />
-                    </div>
-                )}
+            <div className="mt-6">
+                {isStackedLayout ? (
+                    // ════════════════════════════════════════════════════════════════
+                    // LAYOUT A: STACKED (Traffic+Marine Left, Tourism Right)
+                    // Desktop: Flex row (Left 40%, Right 60%)
+                    // Mobile: Vertical stack
+                    // ════════════════════════════════════════════════════════════════
+                    <div className="flex flex-col md:flex-row gap-4 mb-6">
 
-                {/* Marine Widget */}
-                {hasMarine && (
-                    <div className={singleWidgetClasses}>
-                        <MarineWidget
-                            data={marine}
-                            cityDisplay={marineCityDisplay}
-                            narrative={marineNarrative}
-                            lastUpdated={lastUpdated}
-                        />
-                    </div>
-                )}
+                        {/* LEFT COLUMN (Stack): Traffic & Marine (40%) */}
+                        <div className="w-full md:w-[40%] flex flex-col gap-4">
+                            {hasTraffic && (
+                                <div className="w-full">
+                                    <TrafficWidget
+                                        city={cityDisplay}
+                                        cityDisplay={trafficCityDisplay || cityDisplay}
+                                        data={traffic}
+                                        narrative={trafficNarrative}
+                                        lastUpdated={lastUpdated}
+                                    />
+                                </div>
+                            )}
+                            {hasMarine && (
+                                <div className="w-full">
+                                    <MarineWidget
+                                        data={marine}
+                                        cityDisplay={marineCityDisplay}
+                                        narrative={marineNarrative}
+                                        lastUpdated={lastUpdated}
+                                    />
+                                </div>
+                            )}
+                            {/* Render other minor widgets in the stack if they exist */}
+                            {hasSki && ski && (
+                                <SkiConditions data={ski} narrative={skiNarrative} lastUpdated={lastUpdated} />
+                            )}
+                            {hasAgriculture && agriculture && (
+                                <AgricultureWidget data={agriculture} cityDisplay={cityDisplay} lastUpdated={lastUpdated} />
+                            )}
+                            {hasAltitude && altitude && (
+                                <AltitudeWidget data={altitude} cityDisplay={cityDisplay} lastUpdated={lastUpdated} />
+                            )}
+                            {hasFireRisk && fireRisk && (
+                                <FireRiskWidget data={fireRisk} cityDisplay={cityDisplay} lastUpdated={lastUpdated} />
+                            )}
+                        </div>
 
-                {/* Ski Widget */}
-                {hasSki && ski && (
-                    <div className={singleWidgetClasses}>
-                        <SkiConditions
-                            data={ski}
-                            narrative={skiNarrative}
-                            lastUpdated={lastUpdated}
-                        />
+                        {/* RIGHT COLUMN: Tourism (60%) */}
+                        <div className="w-full md:w-[60%] flex flex-col">
+                            <div className="h-full">
+                                <TourismWidget
+                                    data={tourism}
+                                    cityDisplay={cityDisplay}
+                                    lastUpdated={lastUpdated}
+                                />
+                            </div>
+                        </div>
                     </div>
-                )}
+                ) : (
+                    // ════════════════════════════════════════════════════════════════
+                    // LAYOUT B: STANDARD GRID (Fallback)
+                    // Used when Tourism is missing or we only have single widgets
+                    // ════════════════════════════════════════════════════════════════
+                    <div className={widgetCount === 1 ? 'flex flex-col items-center' : 'grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch'}>
+                        {/* Traffic Widget */}
+                        {hasTraffic && (
+                            <div className={`${widgetCount === 1 ? 'w-full md:max-w-lg' : 'w-full'} h-full`}>
+                                <TrafficWidget
+                                    city={cityDisplay}
+                                    cityDisplay={trafficCityDisplay || cityDisplay}
+                                    data={traffic}
+                                    narrative={trafficNarrative}
+                                    lastUpdated={lastUpdated}
+                                />
+                            </div>
+                        )}
 
-                {/* Agriculture Widget */}
-                {hasAgriculture && agriculture && (
-                    <div className={singleWidgetClasses}>
-                        <AgricultureWidget
-                            data={agriculture}
-                            cityDisplay={cityDisplay}
-                            lastUpdated={lastUpdated}
-                        />
-                    </div>
-                )}
+                        {/* Marine Widget */}
+                        {hasMarine && (
+                            <div className={`${widgetCount === 1 ? 'w-full md:max-w-lg' : 'w-full'} h-full`}>
+                                <MarineWidget
+                                    data={marine}
+                                    cityDisplay={marineCityDisplay}
+                                    narrative={marineNarrative}
+                                    lastUpdated={lastUpdated}
+                                />
+                            </div>
+                        )}
 
-                {/* Altitude Widget */}
-                {hasAltitude && altitude && (
-                    <div className={singleWidgetClasses}>
-                        <AltitudeWidget
-                            data={altitude}
-                            cityDisplay={cityDisplay}
-                            lastUpdated={lastUpdated}
-                        />
-                    </div>
-                )}
+                        {/* Ski Widget */}
+                        {hasSki && ski && (
+                            <div className={`${widgetCount === 1 ? 'w-full md:max-w-lg' : 'w-full'} h-full`}>
+                                <SkiConditions
+                                    data={ski}
+                                    narrative={skiNarrative}
+                                    lastUpdated={lastUpdated}
+                                />
+                            </div>
+                        )}
 
-                {/* Fire Risk Widget */}
-                {hasFireRisk && fireRisk && (
-                    <div className={singleWidgetClasses}>
-                        <FireRiskWidget
-                            data={fireRisk}
-                            cityDisplay={cityDisplay}
-                            lastUpdated={lastUpdated}
-                        />
-                    </div>
-                )}
+                        {/* Agriculture Widget */}
+                        {hasAgriculture && agriculture && (
+                            <div className={`${widgetCount === 1 ? 'w-full md:max-w-lg' : 'w-full'} h-full`}>
+                                <AgricultureWidget
+                                    data={agriculture}
+                                    cityDisplay={cityDisplay}
+                                    lastUpdated={lastUpdated}
+                                />
+                            </div>
+                        )}
 
-                {/* Tourism Widget */}
-                {hasTourism && tourism && (
-                    <div className={singleWidgetClasses}>
-                        <TourismWidget
-                            data={tourism}
-                            cityDisplay={cityDisplay}
-                            lastUpdated={lastUpdated}
-                        />
+                        {/* Altitude Widget */}
+                        {hasAltitude && altitude && (
+                            <div className={`${widgetCount === 1 ? 'w-full md:max-w-lg' : 'w-full'} h-full`}>
+                                <AltitudeWidget
+                                    data={altitude}
+                                    cityDisplay={cityDisplay}
+                                    lastUpdated={lastUpdated}
+                                />
+                            </div>
+                        )}
+
+                        {/* Fire Risk Widget */}
+                        {hasFireRisk && fireRisk && (
+                            <div className={`${widgetCount === 1 ? 'w-full md:max-w-lg' : 'w-full'} h-full`}>
+                                <FireRiskWidget
+                                    data={fireRisk}
+                                    cityDisplay={cityDisplay}
+                                    lastUpdated={lastUpdated}
+                                />
+                            </div>
+                        )}
+
+                        {/* Tourism Widget (Fallback position) */}
+                        {hasTourism && tourism && (
+                            <div className={`${widgetCount === 1 ? 'w-full md:max-w-lg' : 'w-full'} h-full`}>
+                                <TourismWidget
+                                    data={tourism}
+                                    cityDisplay={cityDisplay}
+                                    lastUpdated={lastUpdated}
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

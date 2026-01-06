@@ -2,6 +2,7 @@ import React from 'react';
 import GlassCard from './GlassCard';
 import { CONFIG } from '../services/weatherService';
 import { Icon } from './Icons';
+import { sanitizeHtmlLight } from '../shared/sanitizeHtml';
 
 const AdGrid: React.FC = () => {
   // Use mock data if no config provided
@@ -34,10 +35,10 @@ const AdGrid: React.FC = () => {
             className="relative rounded-xl overflow-hidden aspect-square group bg-white/40 dark:bg-slate-800/40 border border-white/20 dark:border-white/5"
           >
             {adHtml ? (
-              // Live Ad Code Injection
+              // Live Ad Code Injection (sanitized for XSS protection)
               <div
                 className="w-full h-full"
-                dangerouslySetInnerHTML={{ __html: adHtml }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtmlLight(adHtml) }}
               />
             ) : (
               // Mock Ad (Native Style)

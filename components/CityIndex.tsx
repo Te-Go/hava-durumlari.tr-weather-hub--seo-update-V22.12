@@ -14,6 +14,23 @@ const CityIndex: React.FC<CityIndexProps> = ({ onCityClick, onBack }) => {
 
   return (
     <div className="max-w-4xl mx-auto pt-4 pb-12 animate-fadeIn relative">
+      {/* SEO Logic */}
+      {React.useEffect(() => {
+        document.title = "Türkiye Hava Durumu - Tüm Şehirler | TG";
+
+        let metaDesc = document.querySelector('meta[name="description"]');
+        if (!metaDesc) {
+          metaDesc = document.createElement('meta');
+          metaDesc.setAttribute('name', 'description');
+          document.head.appendChild(metaDesc);
+        }
+        metaDesc.setAttribute('content', 'Türkiye\'nin 81 ili için anlık hava durumu, saatlik ve 15 günlük tahmin raporları. Tüm şehirlerin hava durumu listesi.');
+
+        return () => {
+          // Optional: Reset title or leave it for next view to handle
+        };
+      }, [])}
+
       {/* Header */}
       <div className="flex justify-center mb-6">
         <button
@@ -21,12 +38,12 @@ const CityIndex: React.FC<CityIndexProps> = ({ onCityClick, onBack }) => {
           className="flex items-center space-x-2 bg-white/40 hover:bg-white/60 text-slate-700 px-5 py-2 rounded-full backdrop-blur-md transition-all border border-white/40 shadow-sm"
         >
           <Icon.ChevronRight className="w-4 h-4 rotate-180" />
-          <span className="font-bold text-sm">Hava Durumları</span>
+          <span className="font-bold text-sm">Ana Sayfa</span>
         </button>
       </div>
 
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-light text-slate-800 dark:text-slate-200 mb-2">Şehir Bul</h1>
+        <h1 className="text-3xl font-light text-slate-800 dark:text-slate-200 mb-2">Türkiye Hava Durumu - Tüm Şehirler</h1>
         <p className="text-slate-500 dark:text-slate-400">Aradığınız şehri bulmak için ana sayfadaki arama çubuğunu kullanın veya aşağıdan seçin.</p>
       </div>
 

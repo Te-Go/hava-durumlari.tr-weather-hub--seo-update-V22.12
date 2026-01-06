@@ -15,7 +15,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   };
 
   return (
-    <footer className="bg-deep-navy text-white/60 py-12 px-4 mt-auto">
+    <footer className="bg-slate-900 text-white/60 py-12 px-4 mt-auto">
       <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-xs">
 
         {/* Column 1: Hakkımızda */}

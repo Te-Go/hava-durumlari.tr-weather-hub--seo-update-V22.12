@@ -46,7 +46,7 @@ const TourismWidget: React.FC<TourismWidgetProps> = ({
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-full flex flex-col">
             {/* Header */}
             <div className="h-[50px] px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
@@ -126,8 +126,8 @@ const TourismWidget: React.FC<TourismWidgetProps> = ({
             </div>
 
             {/* Tourism Advice */}
-            {/* Tourism Advice */}
-            <div className="mx-4 my-3 bg-purple-50 dark:bg-slate-700/30 border border-purple-200 dark:border-slate-600/50 rounded-lg p-3">
+            {/* Tourism Advice - Allow growth */}
+            <div className="mx-4 my-3 bg-purple-50 dark:bg-slate-700/30 border border-purple-200 dark:border-slate-600/50 rounded-lg p-3 flex-grow">
                 <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
                     {data.tourismAdvice}
                 </p>
