@@ -773,12 +773,12 @@ const generateSmartPhrase = (temp: number, conditionCode: number, wind: number, 
 export const calculateLifestyleIndexes = (data: WeatherData): LifestyleIndex[] => {
   if (!data) return [];
   const indexes: LifestyleIndex[] = [];
-  const pressure = data.pressure || 1013;
-  const temp = data.currentTemp || 20;
-  const wind = data.windSpeed || 0;
-  const humidity = data.humidity || 50;
-  const uv = data.uvIndex || 0;
-  const aqi = data.aqi || 40;
+  const pressure = data.pressure ?? 1013;
+  const temp = data.currentTemp ?? 20;
+  const wind = data.windSpeed ?? 0;
+  const humidity = data.humidity ?? 50;
+  const uv = data.uvIndex ?? 0;
+  const aqi = data.aqi ?? 40;
 
   const rainProbCurrent = data.rainProb || 0;
   const rainProbMaxToday = data.daily && data.daily[0] ? data.daily[0].rainProb : rainProbCurrent;
@@ -993,7 +993,8 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
       isDay: isHourDay,
       humidity: hourly.relative_humidity_2m[i] || 50, // Real humidity data
       uvIndex: hourly.uv_index[i] || 0,                // Real UV index data
-      visibility: (hourly.visibility && hourly.visibility[i]) ? Math.round(hourly.visibility[i] / 1000) : 10 // Convert m to km
+      visibility: (hourly.visibility && hourly.visibility[i]) ? Math.round(hourly.visibility[i] / 1000) : 10, // Convert m to km
+      precipitation: hourly.precipitation ? (hourly.precipitation[i] || 0) : 0 // New Mapping
     });
   }
 
@@ -1024,7 +1025,8 @@ const mapOpenMeteoToModel = async (city: string, data: any): Promise<WeatherData
       feelsLike: Math.round(daily.apparent_temperature_max[i] || daily.temperature_2m_max[i]), // New Mapping
       uvIndex: daily.uv_index_max ? Math.round(daily.uv_index_max[i]) : 0, // New Mapping
       // Estimate daily visibility from hourly at noon (approx index i*24 + 12)
-      visibility: (hourly.visibility && hourly.visibility[i * 24 + 12]) ? Math.round(hourly.visibility[i * 24 + 12] / 1000) : 10
+      visibility: (hourly.visibility && hourly.visibility[i * 24 + 12]) ? Math.round(hourly.visibility[i * 24 + 12] / 1000) : 10,
+      precipitationSum: daily.precipitation_sum ? (daily.precipitation_sum[i] || 0) : 0 // New Mapping
     });
   }
 
@@ -1318,7 +1320,7 @@ export const getWeatherData = async (city: string): Promise<WeatherData> => {
       }
     }
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&forecast_hours=168&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,apparent_temperature_max,uv_index_max&forecast_days=15&forecast_hours=360&timezone=auto`;
 
     const response = await fetch(url);
     if (!response.ok) throw new Error('Open-Meteo API Failed');

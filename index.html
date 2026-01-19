@@ -142,6 +142,22 @@
     -->
   <div id="weather-app" data-location-id="34"></div>
   <script type="module" src="/index.tsx"></script>
+
+  <!-- Performance: Speculation Rules API for Instant Page Changes -->
+  <!-- "Conservative" Eagerness saves data by waiting for slight hover intent -->
+  <script type="speculationrules">
+  {
+    "prerender": [
+      {
+        "source": "document",
+        "where": {
+          "selector_matches": "a[href^='/hava-durumu']" 
+        },
+        "eagerness": "conservative"
+      }
+    ]
+  }
+  </script>
 </body>
 
 </html>

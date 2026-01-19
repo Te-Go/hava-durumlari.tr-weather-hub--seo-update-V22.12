@@ -4,6 +4,7 @@
  */
 
 import { WeatherData, DailyForecast } from '../types';
+import { getParentCity } from '../shared/cityData';
 
 // Turkish month names for SEO
 const TURKISH_MONTHS = [
@@ -14,6 +15,34 @@ const TURKISH_MONTHS = [
 const TURKISH_DAYS = [
     'Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'
 ];
+
+
+/**
+ * Wikidata Entities for Top Cities (E-E-A-T Signal)
+ * Links our pages to the Global Knowledge Graph
+ */
+const WIKIDATA_MAP: Record<string, string> = {
+    'İstanbul': 'https://www.wikidata.org/wiki/Q406',
+    'Ankara': 'https://www.wikidata.org/wiki/Q3640',
+    'İzmir': 'https://www.wikidata.org/wiki/Q35997',
+    'Bursa': 'https://www.wikidata.org/wiki/Q40738',
+    'Antalya': 'https://www.wikidata.org/wiki/Q35835',
+    'Adana': 'https://www.wikidata.org/wiki/Q40776',
+    'Konya': 'https://www.wikidata.org/wiki/Q131317',
+    'Şanlıurfa': 'https://www.wikidata.org/wiki/Q173336',
+    'Gaziantep': 'https://www.wikidata.org/wiki/Q93338',
+    'Kocaeli': 'https://www.wikidata.org/wiki/Q170366', // İzmit
+    'Mersin': 'https://www.wikidata.org/wiki/Q180026',
+    'Diyarbakır': 'https://www.wikidata.org/wiki/Q83387',
+    'Hatay': 'https://www.wikidata.org/wiki/Q134262', // Antakya
+    'Manisa': 'https://www.wikidata.org/wiki/Q147089',
+    'Kayseri': 'https://www.wikidata.org/wiki/Q172239',
+    'Samsun': 'https://www.wikidata.org/wiki/Q168926',
+    'Balıkesir': 'https://www.wikidata.org/wiki/Q199723',
+    'Kahramanmaraş': 'https://www.wikidata.org/wiki/Q173981',
+    'Van': 'https://www.wikidata.org/wiki/Q185671',
+    'Aydın': 'https://www.wikidata.org/wiki/Q83419'
+};
 
 /**
  * Generates WeatherForecast JSON-LD schema
@@ -45,7 +74,8 @@ export function generateWeatherForecastSchema(
             "containedInPlace": {
                 "@type": "Country",
                 "name": "Türkiye"
-            }
+            },
+            "sameAs": WIKIDATA_MAP[cityName] || undefined
         },
         "forecast": data.daily.slice(0, 15).map((day, index) => {
             const forecastDate = new Date(today);
@@ -191,8 +221,7 @@ export function generateBreadcrumbSchema(
     view: 'home' | 'tomorrow' | '15-days',
     parentCity?: string
 ): object {
-    // Import getParentCity dynamically to avoid circular deps
-    const { getParentCity } = require('../shared/cityData');
+    // Auto-detect parent city for districts if not provided
 
     // Auto-detect parent city for districts if not provided
     const effectiveParentCity = parentCity || getParentCity(cityName);
@@ -285,6 +314,57 @@ export function generateOrganizationSchema(): object {
 }
 
 /**
+ * Generates LiveBlogPosting JSON-LD schema
+ * Triggers "LIVE" (CANLI) badge in SERPs
+ */
+export function generateLiveBlogPostingSchema(
+    cityName: string,
+    data: WeatherData
+): object {
+    const today = new Date();
+    const startTime = new Date(today);
+    startTime.setHours(0, 0, 1);
+
+    const endTime = new Date(today);
+    endTime.setHours(23, 59, 59);
+
+    // Ensure we have a valid ISO string for dateModified
+    const now = new Date().toISOString();
+
+    return {
+        "@context": "https://schema.org",
+        "@type": "LiveBlogPosting",
+        "headline": `${cityName} Anlık Hava Durumu ve Uyarılar - Canlı Takip`,
+        "description": `${cityName} için dakikası dakikasına canlı hava durumu, radar görüntüleri ve meteorolojik uyarılar.`,
+        "datePublished": startTime.toISOString(),
+        "dateModified": now,
+        "coverageStartTime": startTime.toISOString(),
+        "coverageEndTime": endTime.toISOString(),
+        "author": {
+            "@type": "Organization",
+            "name": "TG Meteoroloji Masası",
+            "url": "https://hava-durumlari.tr"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "TG Dijital",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://hava-durumlari.tr/logo.png"
+            }
+        },
+        "liveBlogUpdate": [
+            {
+                "@type": "BlogPosting",
+                "headline": "Anlık Sıcaklık",
+                "datePublished": now,
+                "articleBody": `Şu an ${cityName} sıcaklık ${Math.round(data.currentTemp)}°C, hissedilen ${Math.round(data.feelsLike)}°C. ${data.condition}.`
+            }
+        ]
+    };
+}
+
+/**
  * Injects all SEO schemas into document head
  */
 export function injectSEOSchemas(
@@ -336,4 +416,13 @@ export function injectSEOSchemas(
     orgSchema.setAttribute('data-seo-dynamic', 'organization');
     orgSchema.textContent = JSON.stringify(generateOrganizationSchema());
     document.head.appendChild(orgSchema);
+
+    // 7. Inject LiveBlogPosting Schema (Only for Home/Dashboard)
+    if (view === 'home' && data) {
+        const liveSchema = document.createElement('script');
+        liveSchema.type = 'application/ld+json';
+        liveSchema.setAttribute('data-seo-dynamic', 'live-blog');
+        liveSchema.textContent = JSON.stringify(generateLiveBlogPostingSchema(cityName, data));
+        document.head.appendChild(liveSchema);
+    }
 }

@@ -35,6 +35,7 @@ export interface HourlyForecast {
   humidity: number;  // Relative humidity %
   uvIndex: number;   // UV index (0-11+)
   visibility: number; // Visibility in km
+  precipitation?: number; // Precipitation amount (mm)
   fullDate?: string; // ISO Date (YYYY-MM-DD) for grouping
 }
 
@@ -51,6 +52,7 @@ export interface DailyForecast {
   feelsLike: number; // Apparent Temp Max
   uvIndex: number;   // Max UV Index
   visibility: number; // Visibility in km
+  precipitationSum?: number; // Total precipitation (mm)
   fullDate?: string; // ISO Date (YYYY-MM-DD) for matching
 }
 

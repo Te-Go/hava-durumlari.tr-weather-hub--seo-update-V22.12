@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { toSlug } from '../services/weatherService';
 import { REGULAR_CITIES } from '../shared/cityData';
+import TrustBox from './TrustBox';
 
 interface FooterProps {
   onNavigate: (view: string) => void;
@@ -69,10 +69,16 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <li><a href="/kvkk-aydinlatma-metni/" className="hover:text-white transition-colors">KVKK Aydınlatma Metni</a></li>
           </ul>
 
-          <div className="mt-8 text-[10px] opacity-40">
-            © 2025 TG Dijital. All rights reserved.
-          </div>
         </div>
+      </div>
+
+      {/* TrustBox - Full Width */}
+      <div className="max-w-4xl mx-auto mt-8">
+        <TrustBox />
+      </div>
+
+      <div className="max-w-4xl mx-auto mt-8 text-[10px] opacity-40 text-center">
+        © 2026 TG Dijital. Tüm hakları saklıdır.
       </div>
     </footer>
   );

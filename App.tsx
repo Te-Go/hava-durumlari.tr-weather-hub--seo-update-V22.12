@@ -589,20 +589,20 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
               const elevation = getProvinceElevation(currentCity);
               const altData = calculateAltitudeData(
                 elevation,
-                wData.temp,
+                wData.currentTemp,
                 wData.feelsLike,
-                wData.daily.map(d => d.tempLow),
+                wData.daily.map(d => d.low),
                 wData.windSpeed,
                 wData.hourly[0]?.precipitation || 0
               );
               if (isMounted) setAltitudeData(altData);
             } else if (primaryCategory === 'fireRisk') {
               if (shouldShowFireRisk()) {
-                const precipSum = wData.daily.slice(0, 7).reduce((sum, d) => sum + (d.precipitation || 0), 0);
+                const precipSum = wData.daily.slice(0, 7).reduce((sum, d) => sum + (d.precipitationSum || 0), 0);
                 const fireData = calculateFireRisk(
                   wData.humidity,
                   wData.windSpeed,
-                  wData.temp,
+                  wData.currentTemp,
                   precipSum
                 );
                 if (isMounted) setFireRiskData(fireData);
@@ -620,9 +620,9 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
             // This allows Istanbul, Antalya, Muğla etc. to show BOTH Traffic/Marine AND Tourism
             if (isTourismRegion(currentCity)) {
               const tourData = calculateTourismComfort(
-                wData.temp,
+                wData.currentTemp,
                 wData.humidity,
-                wData.hourly[0]?.uvIndex || 5,
+                wData.hourly[0]?.uvIndex ?? 5,
                 currentCity
               );
               if (isMounted) setTourismData(tourData);

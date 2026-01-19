@@ -151,10 +151,10 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
     }
   }, [focusTomorrow]);
 
-  const toggleDay = (day: string) => {
-    setExpandedDay(expandedDay === day ? null : day);
+  const toggleDay = (date: string) => {
+    setExpandedDay(expandedDay === date ? null : date);
     // Reset metric selection when closing drawer
-    if (expandedDay === day) {
+    if (expandedDay === date) {
       setSelectedMetric(null);
     }
   };
@@ -233,110 +233,130 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
     if (!dayHourlyData.length) return <div className="p-4 text-center text-sm text-slate-400">Saatlik veri bulunamadı.</div>;
 
     return (
-      <div className="h-[140px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={dayHourlyData.map((h) => ({
-              time: h.time.split(':')[0],
-              temp: Math.round(h.temp),
-              feelsLike: Math.round(h.feelsLike),
-              precipProb: h.precipProb,
-              humidity: h.humidity,
-              windSpeed: h.windSpeed
-            }))}
-            margin={{ top: 10, right: 5, left: -15, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="tempGradientDrawer" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="precipGradientDrawer" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <XAxis
-              dataKey="time"
-              tick={{ fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              interval={2}
-              tickFormatter={(val) => `${val}:00`}
-            />
-            <YAxis
-              yAxisId="temp"
-              tick={{ fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              domain={['dataMin - 2', 'dataMax + 2']}
-              tickFormatter={(val) => `${val}°`}
-            />
-            <YAxis
-              yAxisId="precip"
-              orientation="right"
-              tick={{ fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              domain={[0, 100]}
-              hide
-            />
-            <Tooltip
-              content={({ active, payload, label }: any) => {
-                if (active && payload && payload.length) {
-                  return (
-                    <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-3 py-2 rounded-lg shadow-lg border border-white/20 dark:border-slate-600 text-xs">
-                      <p className="font-bold text-slate-700 dark:text-slate-200 mb-1">{label}:00</p>
-                      <p className="text-orange-500">Sıcaklık: {payload[0]?.value}°</p>
-                      <p className="text-purple-500">Hissedilen: {payload[1]?.value}°</p>
-                      <p className="text-blue-500">Yağış: {payload[2]?.value}%</p>
-                      <p className="text-slate-500">Rüzgar: {payload[3]?.value} km/sa</p>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Area
-              yAxisId="temp"
-              type="monotone"
-              dataKey="temp"
-              stroke="#f97316"
-              strokeWidth={2}
-              fill="url(#tempGradientDrawer)"
-              name="Sıcaklık"
-            />
-            <Line
-              yAxisId="temp"
-              type="monotone"
-              dataKey="feelsLike"
-              stroke="#a855f7"
-              strokeWidth={2}
-              strokeDasharray="4 4"
-              dot={false}
-              name="Hissedilen"
-            />
-            <Area
-              yAxisId="precip"
-              type="monotone"
-              dataKey="precipProb"
-              stroke="#3b82f6"
-              strokeWidth={1}
-              fill="url(#precipGradientDrawer)"
-              name="Yağış"
-              opacity={0.6}
-            />
-            <Line
-              yAxisId="precip"
-              type="monotone"
-              dataKey="windSpeed"
-              stroke="#64748b"
-              strokeWidth={1.5}
-              dot={false}
-              name="Rüzgar"
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+      <div className="flex flex-col w-full">
+        <div className="h-[140px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={dayHourlyData.map((h) => ({
+                time: h.time.split(':')[0],
+                temp: Math.round(h.temp),
+                feelsLike: Math.round(h.feelsLike),
+                precipProb: h.precipProb,
+                humidity: h.humidity,
+                windSpeed: h.windSpeed
+              }))}
+              margin={{ top: 10, right: 5, left: -15, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="tempGradientDrawer" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="precipGradientDrawer" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="time"
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                interval={2}
+                tickFormatter={(val) => `${val}:00`}
+              />
+              <YAxis
+                yAxisId="temp"
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                domain={['dataMin - 2', 'dataMax + 2']}
+                tickFormatter={(val) => `${val}°`}
+              />
+              <YAxis
+                yAxisId="precip"
+                orientation="right"
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                domain={[0, 100]}
+                hide
+              />
+              <Tooltip
+                content={({ active, payload, label }: any) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-3 py-2 rounded-lg shadow-lg border border-white/20 dark:border-slate-600 text-xs">
+                        <p className="font-bold text-slate-700 dark:text-slate-200 mb-1">{label}:00</p>
+                        <p className="text-orange-500">Sıcaklık: {payload[0]?.value}°</p>
+                        <p className="text-purple-500">Hissedilen: {payload[1]?.value}°</p>
+                        <p className="text-blue-500">Yağış: {payload[2]?.value}%</p>
+                        <p className="text-slate-500">Rüzgar: {payload[3]?.value} km/sa</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area
+                yAxisId="temp"
+                type="monotone"
+                dataKey="temp"
+                stroke="#f97316"
+                strokeWidth={2}
+                fill="url(#tempGradientDrawer)"
+                name="Sıcaklık"
+              />
+              <Line
+                yAxisId="temp"
+                type="monotone"
+                dataKey="feelsLike"
+                stroke="#a855f7"
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                dot={false}
+                name="Hissedilen"
+              />
+              <Area
+                yAxisId="precip"
+                type="monotone"
+                dataKey="precipProb"
+                stroke="#3b82f6"
+                strokeWidth={1}
+                fill="url(#precipGradientDrawer)"
+                name="Yağış"
+                opacity={0.6}
+              />
+              <Line
+                yAxisId="precip"
+                type="monotone"
+                dataKey="windSpeed"
+                stroke="#64748b"
+                strokeWidth={1.5}
+                dot={false}
+                name="Rüzgar"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex items-center justify-center gap-4 mt-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+            <span>Sıcaklık</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-0.5 rounded-full bg-purple-500"></span>
+            <span>Hissedilen</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span>Yağış</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-0.5 rounded-full bg-slate-400"></span>
+            <span>Rüzgar</span>
+          </div>
+        </div>
       </div>
     );
   };
@@ -362,8 +382,8 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
             <div className="custom-scrollbar divide-y divide-blue-50 dark:divide-slate-700 relative pb-4">
               {/* Render Days 0-4 (Tactical) */}
               {data.daily.slice(0, 5).map((day) => (
-                <div key={`${day.day}-${day.date}`} className={`group transition-colors border-l-4 ${expandedDay === day.day ? 'bg-blue-100/60 dark:bg-slate-700/30 border-l-blue-500' : 'border-l-transparent hover:border-l-blue-300'}`}>
-                  <button onClick={() => toggleDay(day.day)} className={`w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors min-h-[72px] ${expandedDay === day.day ? 'bg-slate-100/80 dark:bg-slate-700/30' : (data.daily.indexOf(day) % 2 === 0 ? 'bg-slate-50/60 dark:bg-transparent' : 'bg-white/60 dark:bg-slate-800/20')}`}>
+                <div key={`${day.day}-${day.date}`} className={`group transition-colors border-l-4 ${expandedDay === day.date ? 'bg-blue-100/60 dark:bg-slate-700/30 border-l-blue-500' : 'border-l-transparent hover:border-l-blue-300'}`}>
+                  <button onClick={() => toggleDay(day.date)} className={`w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors min-h-[72px] ${expandedDay === day.date ? 'bg-slate-100/80 dark:bg-slate-700/30' : (data.daily.indexOf(day) % 2 === 0 ? 'bg-slate-50/60 dark:bg-transparent' : 'bg-white/60 dark:bg-slate-800/20')}`}>
                     {/* Column 1: Day + Date */}
                     <div className="flex flex-col items-start min-w-[100px]">
                       <span className={`font-bold text-base ${day.day === 'Yarın' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-100'}`}>{day.day}</span>
@@ -394,9 +414,9 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
                       <span className="text-slate-400 dark:text-slate-500 font-medium text-base">{Math.round(day.low)}°</span>
                     </div>
                     {/* Column 7: Chevron */}
-                    <Icon.ChevronRight className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${expandedDay === day.day ? 'rotate-90 text-blue-500' : ''}`} />
+                    <Icon.ChevronRight className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${expandedDay === day.date ? 'rotate-90 text-blue-500' : ''}`} />
                   </button>
-                  <div className={`grid transition-all duration-500 ease-out overflow-hidden ${expandedDay === day.day ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className={`grid transition-all duration-500 ease-out overflow-hidden ${expandedDay === day.date ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div className="min-h-0">
                       {/* Comprehensive 24-Hour Forecast Chart */}
                       <div className="bg-blue-50/30 dark:bg-slate-800/30 p-4 border-t border-blue-50/50 dark:border-slate-700">
@@ -422,8 +442,8 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
 
               {/* Render Days 5-14 (Strategic) */}
               {data.daily.slice(5).map((day) => (
-                <div key={`${day.day}-${day.date}`} className={`group transition-colors ${expandedDay === day.day ? 'bg-blue-100/60 dark:bg-slate-700/30' : ''}`}>
-                  <button onClick={() => toggleDay(day.day)} className={`w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors min-h-[50px] border-b border-slate-100 dark:border-transparent opacity-90 hover:opacity-100 ${expandedDay === day.day ? 'bg-slate-100/80 dark:bg-slate-700/30' : 'bg-transparent'}`}>
+                <div key={`${day.day}-${day.date}`} className={`group transition-colors ${expandedDay === day.date ? 'bg-blue-100/60 dark:bg-slate-700/30' : ''}`}>
+                  <button onClick={() => toggleDay(day.date)} className={`w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors min-h-[50px] border-b border-slate-100 dark:border-transparent opacity-90 hover:opacity-100 ${expandedDay === day.date ? 'bg-slate-100/80 dark:bg-slate-700/30' : 'bg-transparent'}`}>
                     {/* Compact Columns */}
                     <div className="flex items-center min-w-[100px]">
                       <span className="font-medium text-slate-600 dark:text-slate-300 w-24 text-left">{day.day}</span>
@@ -443,10 +463,10 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
                       <span className="text-slate-700 dark:text-slate-200 font-semibold">{Math.round(day.high)}°</span>
                       <span className="text-slate-400 dark:text-slate-600 font-light">{Math.round(day.low)}°</span>
                     </div>
-                    <Icon.ChevronRight className={`w-4 h-4 text-slate-300 transition-transform duration-300 ${expandedDay === day.day ? 'rotate-90' : ''}`} />
+                    <Icon.ChevronRight className={`w-4 h-4 text-slate-300 transition-transform duration-300 ${expandedDay === day.date ? 'rotate-90' : ''}`} />
                   </button>
                   {/* Expandable Chart for Strategic Days too */}
-                  <div className={`grid transition-all duration-500 ease-out overflow-hidden ${expandedDay === day.day ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className={`grid transition-all duration-500 ease-out overflow-hidden ${expandedDay === day.date ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div className="min-h-0">
                       <div className="bg-slate-50/50 dark:bg-slate-800/30 p-2 border-t border-slate-100 dark:border-slate-700">
                         {renderHourlyChart(data, day)}
