@@ -47,6 +47,20 @@ const TrafficWidget: React.FC<Props> = ({
 
     const congestion = congestionColors[data?.congestionLevel || 'low'];
 
+    if (!data) {
+        return (
+            <div className="sinan-traffic-widget bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 h-full flex items-center justify-center p-6 text-center">
+                <div>
+                    <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-2xl opacity-50">🚗</span>
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Trafik verisine ulaşılamadı</p>
+                    <p className="text-xs text-slate-400 mt-1">Lütfen daha sonra tekrar deneyin.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
             className="sinan-traffic-widget bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-full flex flex-col"

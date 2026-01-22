@@ -101,7 +101,8 @@ const RESERVED_PATHS = [
   'wp-admin', 'wp-json', 'sitemap', 'feed', 'rss',
   'konum-ara', // Location search disambiguation page
   'island-demo', // Island components development demo
-  'deniz-suyu-sicakligi' // Sea temperature page
+  'deniz-suyu-sicakligi', // Sea temperature page
+  'sehirler' // Cities index page
 ];
 
 const App: React.FC<AppProps> = ({ locationId = 0 }) => {
@@ -317,19 +318,28 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     );
   };
 
-  // GLOBAL DATA & VIEW ROUTING
+  // GLOBAL DATA (Market Data - Run ONCE)
   useEffect(() => {
-    const initGlobalData = async () => {
+    const initMarketData = async () => {
       try {
         const tickers = await getMarketData();
         setMarketData(Array.isArray(tickers) ? tickers : []);
+      } catch (e) { console.error("Market Data Init Failed", e); }
+    };
+    initMarketData();
+  }, []);
+
+  // NEWS API (Context Aware - Run on City Change)
+  useEffect(() => {
+    const initArticles = async () => {
+      try {
         // SINAN TAG BRIDGE: Pass city for context-aware articles
         const liveArticles = await fetchLiveArticles(currentCity);
         setArticles(liveArticles);
-      } catch (e) { console.error("Global Data Init Failed", e); }
+      } catch (e) { console.error("News Fetch Failed", e); }
     };
-    initGlobalData();
-  }, [currentCity]); // Refetch articles when city changes
+    initArticles();
+  }, [currentCity]);
 
   // VIEW RESOLUTION & URL ROUTING (Runs once on mount)
   // VIEW RESOLUTION & URL ROUTING (Runs once on mount)
@@ -358,6 +368,12 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     if (path.startsWith('/deniz-suyu-sicakligi')) {
       setView({ type: 'sea-temp' });
       return; // Early exit - don't process further
+    }
+
+    // Route: /sehirler - Cities Index Page
+    if (path.startsWith('/sehirler')) {
+      setView({ type: 'cities' });
+      return; // Early exit
     }
 
     // Check for view in segment[2] or legacy paths
@@ -580,9 +596,12 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
             const primaryCategory = islandCategory.primary;
             const secondaryCategory = islandCategory.secondary;
 
+            // Determine if raining (for agriculture advice)
+            const isRaining = (wData.rainVolume > 0) || (wData.hourly[0]?.precipitation || 0) > 0;
+
             // Load primary extended category
             if (primaryCategory === 'agriculture') {
-              fetchAgricultureData(wData.coord?.lat || 39, wData.coord?.lon || 35).then(data => {
+              fetchAgricultureData(wData.coord?.lat || 39, wData.coord?.lon || 35, isRaining).then(data => {
                 if (isMounted && data) setAgricultureData(data);
               }).catch(err => console.error("Agriculture Fetch Error", err));
             } else if (primaryCategory === 'altitude') {
@@ -611,7 +630,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
             // ALSO load Agriculture if it's the secondary category (e.g., Konya, Ankara)
             if (secondaryCategory === 'agriculture' && primaryCategory !== 'agriculture') {
-              fetchAgricultureData(wData.coord?.lat || 39, wData.coord?.lon || 35).then(data => {
+              fetchAgricultureData(wData.coord?.lat || 39, wData.coord?.lon || 35, isRaining).then(data => {
                 if (isMounted && data) setAgricultureData(data);
               }).catch(err => console.error("Secondary Agriculture Fetch Error", err));
             }

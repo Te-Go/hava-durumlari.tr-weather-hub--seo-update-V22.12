@@ -372,9 +372,31 @@ export function injectSEOSchemas(
     view: 'home' | 'tomorrow' | '15-days',
     data: WeatherData
 ): void {
-    // Remove existing dynamic schemas
+    // Remove existing dynamic schemas and canonical
     document.querySelectorAll('script[data-seo-dynamic]').forEach(el => el.remove());
     document.querySelector('meta[name="description"]')?.remove();
+    document.querySelector('link[rel="canonical"]')?.remove();
+
+    // Helper for Slug (Consistent with Breadcrumb)
+    const toSlugSimple = (name: string) => name.toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ğ/g, 'g')
+        .replace(/ç/g, 'c');
+
+    // 0. Inject Canonical URL
+    const citySlug = toSlugSimple(cityName);
+    let canonicalPath = `/hava-durumu/${citySlug}`;
+    if (view === 'tomorrow') canonicalPath += '/yarin';
+    else if (view === '15-days') canonicalPath += '/15-gunluk';
+
+    const canonicalLink = document.createElement('link');
+    canonicalLink.rel = 'canonical';
+    canonicalLink.href = `https://hava-durumlari.tr${canonicalPath}`;
+    document.head.appendChild(canonicalLink);
 
     // 1. Inject Meta Description
     const metaDesc = document.createElement('meta');

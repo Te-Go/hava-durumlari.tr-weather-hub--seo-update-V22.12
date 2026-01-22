@@ -41,7 +41,8 @@ interface OpenMeteoSoilResponse {
  */
 export async function fetchAgricultureData(
     lat: number,
-    lon: number
+    lon: number,
+    isRaining: boolean = false
 ): Promise<AgricultureData | null> {
     try {
         // Open-Meteo Soil API endpoint
@@ -78,7 +79,7 @@ export async function fetchAgricultureData(
         const frostRisk = frostNights > 0;
 
         // Generate planting advice
-        const plantingAdvice = generatePlantingAdvice(soilTemp, moistureLabel, frostRisk);
+        const plantingAdvice = generatePlantingAdvice(soilTemp, moistureLabel, frostRisk, isRaining);
 
         return {
             soilTemp: Math.round(soilTemp * 10) / 10,
@@ -103,7 +104,8 @@ export async function fetchAgricultureData(
 function generatePlantingAdvice(
     soilTemp: number,
     moisture: AgricultureData['moistureLabel'],
-    frostRisk: boolean
+    frostRisk: boolean,
+    isRaining: boolean
 ): string {
     if (frostRisk) {
         return 'Don riski var. Hassas bitkileri koruma altına alın.';
@@ -115,6 +117,10 @@ function generatePlantingAdvice(
 
     if (soilTemp < 10) {
         return 'Toprak serin. Soğuğa dayanıklı türler ekilebilir.';
+    }
+
+    if (isRaining) {
+        return 'Yağış var. Sulama yapmanıza gerek yok.';
     }
 
     if (moisture === 'Kuru') {

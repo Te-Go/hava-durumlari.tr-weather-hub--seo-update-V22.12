@@ -29,6 +29,19 @@ const MarineWidget: React.FC<Props> = ({ data, narrative, lastUpdated, cityDispl
 
     const ferryConfig = ferryStatusConfig[data?.ferryStatus || 'normal'];
 
+    if (!data) {
+        return (
+            <div className="sinan-marine-widget bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-full flex items-center justify-center p-6 text-center">
+                <div>
+                    <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-2xl opacity-50">🌊</span>
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Deniz verisi alınamadı</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
             className="sinan-marine-widget bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 h-full flex flex-col"
