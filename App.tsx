@@ -799,6 +799,26 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
             <LocalDistrictsGrid city={currentCity} view={view.type} />
             {/* SEO Breadcrumb Navigation - Always Visible */}
             <SEOBreadcrumb cityName={currentCity} view={view.type} parentCity={parentCity || undefined} />
+
+            {/* SEO: Visible H1 & Intro (Responsive Layout) */}
+            <div className="max-w-4xl mx-auto px-4 mt-2 mb-3 flex flex-col md:flex-row md:items-end md:justify-between gap-2 md:gap-6">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white leading-tight flex-shrink-0">
+                {view.type === 'tomorrow'
+                  ? `${currentCity} Yarınki Hava Durumu`
+                  : view.type === '15-days'
+                    ? `${currentCity} 15 Günlük Hava Durumu Tahmini`
+                    : `${currentCity} Hava Durumu`
+                }
+              </h1>
+              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 md:text-right md:max-w-lg leading-snug">
+                {view.type === 'tomorrow'
+                  ? `${currentCity} için yarınki hava durumu tahmin raporu ve detaylı meteoroloji verileri.`
+                  : view.type === '15-days'
+                    ? `${currentCity} 15 günlük hava durumu trendi, sıcaklık değişimi ve yağış beklentisi.`
+                    : `${currentCity} güncel hava durumu ve detaylı tahminler. Anlık sıcaklık ve rüzgar verileri.`
+                }
+              </p>
+            </div>
             {/* Answer Summary Bar - Between City Rail and Hero - HIDDEN in 15-days view */}
             {view.type !== '15-days' && displayData && (() => {
               const timeframe: Timeframe = view.type === 'tomorrow' ? 'tomorrow' : 'today';

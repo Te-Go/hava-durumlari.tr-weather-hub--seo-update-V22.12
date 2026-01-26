@@ -374,6 +374,7 @@ export function injectSEOSchemas(
 ): void {
     // Remove existing dynamic schemas and canonical
     document.querySelectorAll('script[data-seo-dynamic]').forEach(el => el.remove());
+    document.querySelectorAll('meta[data-seo-dynamic]').forEach(el => el.remove()); // Clean up social tags
     document.querySelector('meta[name="description"]')?.remove();
     document.querySelector('link[rel="canonical"]')?.remove();
 
@@ -447,4 +448,33 @@ export function injectSEOSchemas(
         liveSchema.textContent = JSON.stringify(generateLiveBlogPostingSchema(cityName, data));
         document.head.appendChild(liveSchema);
     }
+
+    // 8. Inject Open Graph & Twitter Card Meta Tags (Social)
+    const pageTitle = document.title;
+    const pageUrl = `https://hava-durumlari.tr${canonicalPath}`;
+    const descContent = metaDesc.content;
+    const imageUrl = 'https://hava-durumlari.tr/social-share-default.png'; // Placeholder for now
+
+    const metaTags = [
+        { property: 'og:type', content: 'website' },
+        { property: 'og:title', content: pageTitle },
+        { property: 'og:description', content: descContent },
+        { property: 'og:url', content: pageUrl },
+        { property: 'og:image', content: imageUrl },
+        { property: 'og:site_name', content: 'Hava Durumları Türkiye' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: pageTitle },
+        { name: 'twitter:description', content: descContent },
+        { name: 'twitter:image', content: imageUrl },
+        { name: 'twitter:site', content: '@havadurumlari_tr' }
+    ];
+
+    metaTags.forEach(tag => {
+        const key = tag.property ? 'property' : 'name';
+        const el = document.createElement('meta');
+        el.setAttribute(key, tag.property || tag.name || '');
+        el.setAttribute('content', tag.content);
+        el.setAttribute('data-seo-dynamic', 'social');
+        document.head.appendChild(el);
+    });
 }

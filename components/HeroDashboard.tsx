@@ -31,15 +31,7 @@ const HeroDashboard: React.FC<HeroDashboardProps> = ({ data, badgeText = "Şimdi
   return (
     <div className="flex flex-col gap-4 mb-6">
 
-      {/* SEO: Semantic H1 (Visually Hidden) */}
-      <h1 className="sr-only">
-        {activeView === 'tomorrow'
-          ? `${data.city} Yarınki Hava Durumu`
-          : activeView === '15-days'
-            ? `${data.city} 15 Günlük Hava Durumu Tahmini`
-            : `${data.city} Hava Durumu`
-        }
-      </h1>
+
 
       <AlertBar data={data} />
 
