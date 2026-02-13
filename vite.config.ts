@@ -26,7 +26,27 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
-    plugins: [react()],
+    plugins: [
+      react(),
+      // analyze({ summaryOnly: true }) // Optional: Uncomment to see bundle size in terminal
+    ],
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      sourcemap: false, // Disable source maps for production to save space
+      minify: 'terser', // Use Terser for better minification
+      manifest: true, // Enable manifest for PHP integration
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            charts: ['recharts'],
+            maps: ['leaflet', 'react-leaflet'],
+            ui: ['lucide-react', 'framer-motion']
+          }
+        }
+      }
+    },
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
