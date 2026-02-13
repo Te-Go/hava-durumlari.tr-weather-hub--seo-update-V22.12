@@ -477,4 +477,26 @@ export function injectSEOSchemas(
         el.setAttribute('data-seo-dynamic', 'social');
         document.head.appendChild(el);
     });
+
+    // 9. Inject Speakable Schema (AEO - Voice Search)
+    const speakableSchema = document.createElement('script');
+    speakableSchema.type = 'application/ld+json';
+    speakableSchema.setAttribute('data-seo-dynamic', 'speakable');
+    speakableSchema.textContent = JSON.stringify(generateSpeakableSchema());
+    document.head.appendChild(speakableSchema);
+}
+
+/**
+ * Generates Speakable JSON-LD schema (Voice Search)
+ * Targets the main weather summary text
+ */
+export function generateSpeakableSchema(): object {
+    return {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "speakable": {
+            "@type": "SpeakableSpecification",
+            "cssSelector": ["#weather-summary-text", ".sinan-speakable-summary"]
+        }
+    };
 }

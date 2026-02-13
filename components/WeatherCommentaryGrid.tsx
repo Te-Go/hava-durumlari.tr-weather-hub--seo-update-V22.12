@@ -282,7 +282,7 @@ export const AnswerSummaryBar: React.FC<AnswerSummaryBarProps> = ({ city, summar
                     <div className="w-px h-5 bg-slate-300 dark:bg-blue-600/50 flex-shrink-0" />
 
                     {/* Summary Text */}
-                    <p className="text-sm text-slate-700 dark:text-blue-100 leading-relaxed line-clamp-2">
+                    <p id="weather-summary-text" className="text-sm text-slate-700 dark:text-blue-100 leading-relaxed">
                         {summary}
                     </p>
                 </div>

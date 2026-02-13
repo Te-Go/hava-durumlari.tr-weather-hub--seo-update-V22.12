@@ -676,7 +676,9 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
   useEffect(() => {
     // Auto-Theme Logic (Only if user hasn't manually overridden via settings)
-    if (weatherData && !isManualTheme) {
+    // Auto-Theme Logic (Only if user hasn't manually overridden via settings)
+    // SINAN FIX: Ensure we only switch theme if the data matches the CURRENT city (prevents stale data flash)
+    if (weatherData && !isManualTheme && !loading && toSlug(weatherData.city) === toSlug(currentCity)) {
       if (weatherData.icon === 'moon' || weatherData.icon.includes('night') || weatherData.icon.includes('storm')) {
         setIsDarkMode(true);
       } else {
@@ -711,7 +713,7 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     }
 
     trackEvent('view_weather', 'city', currentCity);
-  }, [weatherData, view.type, currentCity, isManualTheme]);
+  }, [weatherData, view.type, currentCity, isManualTheme, loading]);
 
   const handleCityChange = (newCity: string) => {
     const prettyName = fromSlug(toSlug(newCity));

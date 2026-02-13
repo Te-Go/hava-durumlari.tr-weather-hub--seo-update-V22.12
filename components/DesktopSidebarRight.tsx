@@ -38,20 +38,18 @@ const DesktopSidebarRight: React.FC<DesktopSidebarRightProps> = ({ articles, cit
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl -ml-6 -mb-6"></div>
 
               {/* Content */}
-              <div className="relative z-10">
-                <div className="w-16 h-16 bg-white dark:bg-slate-700 rounded-2xl shadow-sm mb-4 mx-auto flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-3xl">📱</span>
-                </div>
-                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-2">
-                  Mobil Uygulama
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                  Çok yakında App Store ve Google Play'de!
-                </p>
-                <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
-                  Haberdar Ol
-                </button>
+              <div className="w-16 h-16 bg-white dark:bg-slate-700 rounded-2xl shadow-sm mb-4 mx-auto flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                <span className="text-3xl">🏠</span>
               </div>
+              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-2">
+                Ev Sigortası
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                Fırtına, dolu ve sel riskine karşı evinizi güvenceye alın.
+              </p>
+              <button className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                Teklif Al
+              </button>
             </div>
           </div>
         )}
@@ -76,7 +74,7 @@ const DesktopSidebarRight: React.FC<DesktopSidebarRightProps> = ({ articles, cit
          ═══════════════════════════════════════════════════════════════════ */}
       <NetworkWidget />
 
-    </div>
+    </div >
   );
 };
 

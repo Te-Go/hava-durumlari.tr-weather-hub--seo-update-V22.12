@@ -66,6 +66,17 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <li><a href="/kullanim-kosullari/" className="hover:text-white transition-colors">Kullanım Koşulları</a></li>
             <li><a href="/gizlilik-politikasi/" className="hover:text-white transition-colors">Gizlilik Politikası</a></li>
             <li><a href="/cerez-politikasi/" className="hover:text-white transition-colors">Çerez Politikası</a></li>
+            <li>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.dispatchEvent(new Event('show_cookie_banner'));
+                }}
+                className="hover:text-white transition-colors text-left"
+              >
+                Çerez Tercihleri
+              </button>
+            </li>
             <li><a href="/kvkk-aydinlatma-metni/" className="hover:text-white transition-colors">KVKK Aydınlatma Metni</a></li>
           </ul>
 

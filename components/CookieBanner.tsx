@@ -10,7 +10,7 @@ const CookieBanner: React.FC = () => {
   useEffect(() => {
     // Check using the centralized engine
     const prefs = getUserPreferences();
-    
+
     if (prefs.consentStatus === 'pending') {
       // Gentle Delay
       const timer = setTimeout(() => {
@@ -18,6 +18,14 @@ const CookieBanner: React.FC = () => {
       }, 2000);
       return () => clearTimeout(timer);
     }
+
+    // LISTENER: Allow Footer to re-open banner
+    const handleShow = () => {
+      setIsVisible(true);
+      setIsClosing(false);
+    };
+    window.addEventListener('show_cookie_banner', handleShow);
+    return () => window.removeEventListener('show_cookie_banner', handleShow);
   }, []);
 
   const handleAccept = () => {
@@ -42,7 +50,7 @@ const CookieBanner: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div 
+    <div
       className={`
         fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:bottom-6 
         z-[60] max-w-md w-full
@@ -60,18 +68,18 @@ const CookieBanner: React.FC = () => {
               Çerez Tercihleriniz
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
-              Size daha doğru, yerel hava durumu verileri sunmak ve hizmet kalitemizi artırmak için çerezleri kullanıyoruz. 
+              Size daha doğru, yerel hava durumu verileri sunmak ve hizmet kalitemizi artırmak için çerezleri kullanıyoruz.
               <a href="/yasal/cerez-politikasi" className="text-blue-500 hover:underline ml-1">Çerez Politikası</a>
             </p>
-            
+
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={handleAccept}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-colors shadow-sm"
               >
                 Kabul Et
               </button>
-              <button 
+              <button
                 onClick={handleDecline}
                 className="flex-1 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors"
               >
@@ -79,9 +87,9 @@ const CookieBanner: React.FC = () => {
               </button>
             </div>
           </div>
-          
-          <button 
-            onClick={handleDecline} 
+
+          <button
+            onClick={handleDecline}
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             aria-label="Kapat"
           >
@@ -89,7 +97,7 @@ const CookieBanner: React.FC = () => {
           </button>
         </div>
       </div>
-      
+
       <style>{`
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(20px); }

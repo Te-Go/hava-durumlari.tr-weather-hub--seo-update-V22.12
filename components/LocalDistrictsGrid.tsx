@@ -70,7 +70,7 @@ const LocalDistrictsGrid: React.FC<LocalDistrictsGridProps> = ({ city, parentCit
             {/* Scrollable Rail */}
             <div
                 ref={scrollRef}
-                className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 scroll-smooth"
+                className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 scroll-smooth snap-x snap-mandatory px-4 md:px-0"
             >
                 {districts.map((district) => (
                     <a
@@ -81,6 +81,7 @@ const LocalDistrictsGrid: React.FC<LocalDistrictsGridProps> = ({ city, parentCit
                             // trackEvent('click_district_rail', 'navigation', district);
                         }}
                         className="
+                            snap-start
                             flex-shrink-0 px-3 py-1.5
                             rounded-lg
                             text-xs font-medium
@@ -100,6 +101,9 @@ const LocalDistrictsGrid: React.FC<LocalDistrictsGridProps> = ({ city, parentCit
                 ))}
             </div>
 
+            {/* Mobile Gradient Hint (Right Side) */}
+            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white/90 dark:from-slate-900/90 to-transparent pointer-events-none md:hidden rounded-r-xl z-10" />
+
             {/* Right Scroll Button */}
             <button
                 onClick={() => scroll('right')}
@@ -108,7 +112,7 @@ const LocalDistrictsGrid: React.FC<LocalDistrictsGridProps> = ({ city, parentCit
             >
                 <Icon.ChevronRight className="w-3 h-3" />
             </button>
-        </div>
+        </div >
     );
 };
 
