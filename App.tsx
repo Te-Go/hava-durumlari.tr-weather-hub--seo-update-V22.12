@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, ErrorInfo, ReactNode } from 'react';
+import React, { useEffect, useState, ErrorInfo, ReactNode, Suspense } from 'react';
 import { getWeatherData, getWeatherDataByCoords, getMarketData, toSlug, fromSlug, fetchLiveArticles, trackEvent, getCityFromCoords, getTomorrowDashboardData, getWeekendDashboardData, initAnalytics, initAds, getUserPreferences, saveUserPreferences, getCityById } from './services/weatherService';
 import { WeatherData, MarketTicker, NewsItem } from './types';
 import TopBar from './components/TopBar';
@@ -8,8 +8,8 @@ import HeroDashboard from './components/HeroDashboard';
 import WeatherCommentaryGrid, { AnswerSummaryBar } from './components/WeatherCommentaryGrid';
 import { generateWeatherCommentary, Timeframe } from './shared/weatherCommentary';
 import ForecastSection from './components/ForecastSection';
-import RadarNews from './components/RadarNews';
-import HistoricalChart from './components/HistoricalChart';
+
+// Restore missing imports
 import Footer from './components/Footer';
 import CityIndex from './components/CityIndex';
 import AdGrid from './components/AdGrid';
@@ -18,14 +18,18 @@ import CookieBanner from './components/CookieBanner';
 import WeatherTriggeredAd from './components/WeatherTriggeredAd';
 // DesktopSidebarLeft removed from layout
 import DesktopSidebarRight from './components/DesktopSidebarRight';
-import NewsSection from './components/NewsSection';
 import LazySection from './components/LazySection';
 import MobileNav from './components/MobileNav';
 import NetworkRibbon from './components/NetworkRibbon';
-import LocationSearchPage from './components/LocationSearchPage';
-import IslandDemo from './components/IslandDemo';
-import SeaTempPage from './components/SeaTempPage';
 import SEOBreadcrumb from './components/SEOBreadcrumb';
+
+// Lazy Load Heavy Components (Route Splitting & Component Splitting)
+const RadarNews = React.lazy(() => import('./components/RadarNews'));
+const HistoricalChart = React.lazy(() => import('./components/HistoricalChart'));
+const NewsSection = React.lazy(() => import('./components/NewsSection'));
+const LocationSearchPage = React.lazy(() => import('./components/LocationSearchPage'));
+const IslandDemo = React.lazy(() => import('./components/IslandDemo'));
+const SeaTempPage = React.lazy(() => import('./components/SeaTempPage'));
 import LastUpdated from './components/LastUpdated';
 import SEOFAQSection from './components/SEOFAQSection';
 import LocalDistrictsGrid from './components/LocalDistrictsGrid';
@@ -932,11 +936,13 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
                       <LifestyleRail data={displayData} />
                     </div>
                     <div className="w-full md:w-1/2">
-                      <RadarNews
-                        articles={articles}
-                        weatherData={displayData}
-                        compact={true}
-                      />
+                      <Suspense fallback={<div className="h-[300px] bg-white/50 dark:bg-slate-800/50 rounded-xl animate-pulse" />}>
+                        <RadarNews
+                          articles={articles}
+                          weatherData={displayData}
+                          compact={true}
+                        />
+                      </Suspense>
                     </div>
                   </div>
                 )}
@@ -954,12 +960,16 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
                 {/* Historical Chart (Hava Durumu Eğilimleri) - HIDDEN in 15-days view */}
                 {view.type !== '15-days' && (
-                  <HistoricalChart weatherData={displayData} />
+                  <Suspense fallback={<div className="h-[300px] bg-white/50 dark:bg-slate-800/50 rounded-xl animate-pulse" />}>
+                    <HistoricalChart weatherData={displayData} />
+                  </Suspense>
                 )}
                 <LazySection
                   placeholder={<div className="min-h-[300px] animate-pulse bg-slate-100/50 dark:bg-slate-800/50 rounded-xl mt-6 mb-6" />}
                 >
-                  <NewsSection city={currentCity} />
+                  <Suspense fallback={<div className="min-h-[300px] animate-pulse bg-slate-100/50 dark:bg-slate-800/50 rounded-xl mt-6 mb-6" />}>
+                    <NewsSection city={currentCity} />
+                  </Suspense>
                 </LazySection>
                 {/* LAUNCH PHASE: AdGrid (İlginizi Çekebilir) disabled for first 12 weeks. Reactivate after mid-March 2025
                 <LazySection>
@@ -995,7 +1005,9 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
           {/* Main Content Column - Full width on mobile, flex-1 on desktop */}
           <main className="flex-1 min-w-0 order-1">
-            {renderView()}
+            <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div></div>}>
+              {renderView()}
+            </Suspense>
           </main>
 
           {/* Right Sidebar (Desktop Only) - Non-sticky, scrolls with content */}

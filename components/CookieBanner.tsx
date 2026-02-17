@@ -69,7 +69,7 @@ const CookieBanner: React.FC = () => {
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
               Size daha doğru, yerel hava durumu verileri sunmak ve hizmet kalitemizi artırmak için çerezleri kullanıyoruz.
-              <a href="/yasal/cerez-politikasi" className="text-blue-500 hover:underline ml-1">Çerez Politikası</a>
+              <a href="/cerez-politikasi/" className="text-blue-500 hover:underline ml-1">Çerez Politikası</a>
             </p>
 
             <div className="flex gap-3">

@@ -39,10 +39,18 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom'],
-            charts: ['recharts'],
-            maps: ['leaflet', 'react-leaflet'],
-            ui: ['lucide-react', 'framer-motion']
+            // Core React Vendor
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'], // react-router is likely used if LocationSearchPage is a route, or just for future proofs
+
+            // Visualization Heavyweights (Lazy Loaded)
+            'vendor-charts': ['recharts'],
+            'vendor-maps': ['leaflet', 'react-leaflet'],
+
+            // UI Utilities
+            'vendor-ui': ['lucide-react', 'framer-motion'],
+
+            // Core Utilities (Moment, etc if used, otherwise grouping helpers)
+            // 'vendor-utils': ['axios', 'date-fns'] // Example
           }
         }
       }

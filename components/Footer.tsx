@@ -33,6 +33,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <ul className="space-y-2">
             <li><a href="/yarin" onClick={(e) => handleLinkClick(e, 'tomorrow')} className="hover:text-white transition-colors text-blue-400 font-semibold">Yarınki Hava Durumu</a></li>
             <li><a href="/hafta-sonu" onClick={(e) => handleLinkClick(e, 'weekend')} className="hover:text-white transition-colors text-indigo-400 font-semibold">Bu Hafta Sonu</a></li>
+            <li><a href="/deniz-suyu-sicakligi" onClick={(e) => handleLinkClick(e, 'sea-temp')} className="hover:text-white transition-colors text-cyan-400 font-semibold">Deniz Suyu Sıcaklığı</a></li>
             {/* SEO Links for Content */}
             <li><a href="/hava-durumu-makaleleri/" className="hover:text-white transition-colors">Hava Durumu Makaleleri</a></li>
           </ul>

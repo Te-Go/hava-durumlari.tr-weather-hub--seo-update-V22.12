@@ -156,7 +156,7 @@ const SeaTempPage: React.FC<SeaTempPageProps> = ({ onCityChange }) => {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-4xl mx-auto px.4 py-6 space-y-4">
+            <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
                 {/* Loading State */}
                 {isLoading && (
                     <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center">

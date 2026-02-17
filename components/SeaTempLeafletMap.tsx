@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { SeaTempLocation } from '../services/marineService';
 
-// Leaflet CSS must be imported in index.html or styles.css
-// Add to index.html: <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+// Leaflet CSS - Bundled directly to avoid CDN/CSP issues
+import 'leaflet/dist/leaflet.css';
 
 interface SeaTempLeafletMapProps {
     locations: SeaTempLocation[];
@@ -56,6 +56,11 @@ const SeaTempLeafletMap: React.FC<SeaTempLeafletMapProps> = ({ locations, onLoca
             map.setMaxBounds(bounds);
 
             mapInstanceRef.current = map;
+
+            // Fix: Force map sizing recalculation after render to prevent "grey tiles" or partial rendering
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 250);
 
             // Add temperature markers
             locations.forEach((location) => {
@@ -201,8 +206,7 @@ const SeaTempLeafletMap: React.FC<SeaTempLeafletMapProps> = ({ locations, onLoca
             {/* Map container */}
             <div
                 ref={mapRef}
-                className="w-full rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600"
-                style={{ height: '400px' }}
+                className="w-full h-[500px] md:h-[650px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600 z-0 shadow-inner"
             />
         </div>
     );

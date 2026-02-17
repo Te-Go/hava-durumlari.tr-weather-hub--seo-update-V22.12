@@ -70,7 +70,7 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ article, relatedArticles, onA
       <div className="mb-8">
         <div className="bg-glass-white/40 dark:bg-slate-800/40 border border-glass-border dark:border-dark-border rounded-2xl min-h-[280px] flex items-center justify-center shadow-glass relative overflow-hidden group">
           {CONFIG.ads?.articleAd ? (
-            <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: CONFIG.ads.articleAd }} />
+            <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: sanitizeHtmlLight(CONFIG.ads.articleAd) }} />
           ) : (
             <>
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50"></div>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import WidgetErrorBoundary from './WidgetErrorBoundary';
 import { TrafficWidget, MarineWidget, SkiConditions, RegionalSummary } from '../islands';
-import { CITY_COORDS } from '../shared/cityData';
 
 // Import real data services
 import { fetchMarineData, generateMarineNarrative, isCoastalCity, type MarineData } from '../services/marineService';
@@ -9,7 +8,7 @@ import { fetchTrafficData, hasTrafficMonitoring, type TomTomTrafficData } from '
 import { calculateSkiConditions, hasSkiResort, type SkiData } from '../services/skiService';
 
 // TomTom API Key (should be in environment variables in production)
-const TOMTOM_API_KEY = 'qUlGJOObY34eaqSXZto9H0OVWfGYqhP5';
+const TOMTOM_API_KEY = import.meta.env.VITE_TOMTOM_API_KEY || '';
 
 interface CityProfile {
     key: string;

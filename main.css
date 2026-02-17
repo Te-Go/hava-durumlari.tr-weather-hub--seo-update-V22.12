@@ -31,3 +31,31 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Leaflet/Tailwind Compatibility Fix */
+.leaflet-pane img,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+    max-width: none !important;
+    max-height: none !important;
+    width: auto;
+    padding: 0;
+}
+
+/* Fix for potential accumulation of relative positioning from WP themes */
+.leaflet-container {
+    position: relative;
+    z-index: 1;
+}
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon {
+    position: absolute;
+}
+
+.leaflet-container {
+    background: #0f172a;
+    /* Match drag area to dark mode bg */
+}
