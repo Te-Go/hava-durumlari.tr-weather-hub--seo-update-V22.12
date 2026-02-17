@@ -36,6 +36,8 @@ interface OpenMeteoSoilResponse {
     };
 }
 
+import { fetchWithCache } from './cacheService';
+
 /**
  * Fetch agriculture data for a given location
  */
@@ -44,58 +46,70 @@ export async function fetchAgricultureData(
     lon: number,
     isRaining: boolean = false
 ): Promise<AgricultureData | null> {
-    try {
-        // Open-Meteo Soil API endpoint
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-            `&hourly=soil_temperature_0_to_7cm,soil_moisture_0_to_7cm,et0_fao_evapotranspiration` +
-            `&daily=temperature_2m_min` +
-            `&forecast_days=3` +
-            `&timezone=auto`;
+    // Generate cache key
+    // Round coordinates to 4 decimals (~11m precision) for cache hits
+    const cacheKey = `agri_v1_${lat.toFixed(4)}_${lon.toFixed(4)}`;
 
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Agriculture API failed');
+    return fetchWithCache(
+        cacheKey,
+        async () => {
+            try {
+                // Open-Meteo Soil API endpoint
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+                    `&hourly=soil_temperature_0_to_7cm,soil_moisture_0_to_7cm,et0_fao_evapotranspiration` +
+                    `&daily=temperature_2m_min` +
+                    `&forecast_days=3` +
+                    `&timezone=auto`;
 
-        const data: OpenMeteoSoilResponse = await response.json();
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Agriculture API failed');
 
-        // Get current hour's data (first entry is most recent)
-        const currentHour = new Date().getHours();
-        const soilTemp = data.hourly.soil_temperature_0_to_7cm[currentHour] ?? 15;
-        const soilMoisture = data.hourly.soil_moisture_0_to_7cm[currentHour] ?? 0.3;
-        const evapotranspiration = data.hourly.et0_fao_evapotranspiration[currentHour] ?? 3;
+                const data: OpenMeteoSoilResponse = await response.json();
 
-        // Calculate moisture label
-        let moistureLabel: AgricultureData['moistureLabel'] = 'Normal';
-        if (soilMoisture < 0.2) moistureLabel = 'Kuru';
-        else if (soilMoisture > 0.5) moistureLabel = 'Islak';
+                // Get current hour's data (first entry is most recent)
+                const currentHour = new Date().getHours();
+                const soilTemp = data.hourly.soil_temperature_0_to_7cm[currentHour] ?? 15;
+                const soilMoisture = data.hourly.soil_moisture_0_to_7cm[currentHour] ?? 0.3;
+                const evapotranspiration = data.hourly.et0_fao_evapotranspiration[currentHour] ?? 3;
 
-        // Calculate irrigation need based on evapotranspiration
-        let irrigationNeed: AgricultureData['irrigationNeed'] = 'Orta';
-        if (evapotranspiration > 5) irrigationNeed = 'Yüksek';
-        else if (evapotranspiration < 2) irrigationNeed = 'Düşük';
+                // Calculate moisture label
+                let moistureLabel: AgricultureData['moistureLabel'] = 'Normal';
+                if (soilMoisture < 0.2) moistureLabel = 'Kuru';
+                else if (soilMoisture > 0.5) moistureLabel = 'Islak';
 
-        // Check frost risk (min temp < 0 in next 3 days)
-        const minTemps = data.daily?.temperature_2m_min ?? [];
-        const frostNights = minTemps.filter(t => t < 0).length;
-        const frostRisk = frostNights > 0;
+                // Calculate irrigation need based on evapotranspiration
+                let irrigationNeed: AgricultureData['irrigationNeed'] = 'Orta';
+                if (evapotranspiration > 5) irrigationNeed = 'Yüksek';
+                else if (evapotranspiration < 2) irrigationNeed = 'Düşük';
 
-        // Generate planting advice
-        const plantingAdvice = generatePlantingAdvice(soilTemp, moistureLabel, frostRisk, isRaining);
+                // Check frost risk (min temp < 0 in next 3 days)
+                const minTemps = data.daily?.temperature_2m_min ?? [];
+                const frostNights = minTemps.filter(t => t < 0).length;
+                const frostRisk = frostNights > 0;
 
-        return {
-            soilTemp: Math.round(soilTemp * 10) / 10,
-            soilMoisture: Math.round(soilMoisture * 100) / 100,
-            moistureLabel,
-            evapotranspiration: Math.round(evapotranspiration * 10) / 10,
-            irrigationNeed,
-            frostRisk,
-            frostNights,
-            plantingAdvice,
-            lastUpdated: Date.now(),
-        };
-    } catch (error) {
-        console.error('Failed to fetch agriculture data:', error);
-        return null;
-    }
+                // Generate planting advice
+                const plantingAdvice = generatePlantingAdvice(soilTemp, moistureLabel, frostRisk, isRaining);
+
+                console.log(`[Agriculture] Fresh data for ${lat},${lon}`);
+
+                return {
+                    soilTemp: Math.round(soilTemp * 10) / 10,
+                    soilMoisture: Math.round(soilMoisture * 100) / 100,
+                    moistureLabel,
+                    evapotranspiration: Math.round(evapotranspiration * 10) / 10,
+                    irrigationNeed,
+                    frostRisk,
+                    frostNights,
+                    plantingAdvice,
+                    lastUpdated: Date.now(),
+                };
+            } catch (error) {
+                console.error('Failed to fetch agriculture data:', error);
+                return null;
+            }
+        },
+        60 // 1 Hour TTL
+    );
 }
 
 /**

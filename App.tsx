@@ -47,7 +47,8 @@ import { getIslandCategory } from './shared/provinceIslandMap';
 import { injectSEOSchemas } from './services/seoSchemaService';
 
 // TomTom API Key
-const TOMTOM_API_KEY = 'qUlGJOObY34eaqSXZto9H0OVWfGYqhP5';
+// TomTom API Key - Secured via Environment Variables
+const TOMTOM_API_KEY = import.meta.env.VITE_TOMTOM_API_KEY || '';
 
 type ViewState =
   | { type: 'home' }

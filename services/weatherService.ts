@@ -872,45 +872,54 @@ interface OpenAQMeasurement {
 }
 
 const fetchAirQuality = async (lat: number, lon: number): Promise<number> => {
-  try {
-    // OpenAQ v2 API - find nearest measurements
-    const url = `https://api.openaq.org/v2/latest?coordinates=${lat},${lon}&radius=25000&limit=1`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' }
-    });
+  // Use Cache Wrapper: 60 Minutes TTL
+  const cacheKey = `aqi_v1_${lat.toFixed(4)}_${lon.toFixed(4)}`;
 
-    if (!response.ok) throw new Error('OpenAQ request failed');
+  return fetchWithCache(
+    cacheKey,
+    async () => {
+      try {
+        // OpenAQ v2 API - find nearest measurements
+        const url = `https://api.openaq.org/v2/latest?coordinates=${lat},${lon}&radius=25000&limit=1`;
+        const response = await fetch(url, {
+          headers: { 'Accept': 'application/json' }
+        });
 
-    const data = await response.json();
+        if (!response.ok) throw new Error('OpenAQ request failed');
 
-    if (data.results && data.results.length > 0) {
-      const measurements = data.results[0].measurements as OpenAQMeasurement[];
+        const data = await response.json();
 
-      // Look for PM2.5 or PM10 (common AQI indicators)
-      const pm25 = measurements.find(m => m.parameter === 'pm25');
-      const pm10 = measurements.find(m => m.parameter === 'pm10');
+        if (data.results && data.results.length > 0) {
+          const measurements = data.results[0].measurements as OpenAQMeasurement[];
 
-      // Convert PM2.5 to simplified AQI (0-100+ scale)
-      // EPA breakpoints: 0-12 = Good, 12-35 = Moderate, 35-55 = Unhealthy for Sensitive
-      if (pm25) {
-        const value = pm25.value;
-        if (value <= 12) return Math.round(value * 4); // 0-48 (Good)
-        if (value <= 35) return Math.round(50 + (value - 12) * 2); // 50-96 (Moderate)
-        if (value <= 55) return Math.round(100 + (value - 35)); // 100-120 (Unhealthy for Sensitive)
-        return Math.min(Math.round(value * 2), 300); // Scale up for worse conditions
+          // Look for PM2.5 or PM10 (common AQI indicators)
+          const pm25 = measurements.find(m => m.parameter === 'pm25');
+          const pm10 = measurements.find(m => m.parameter === 'pm10');
+
+          // Convert PM2.5 to simplified AQI (0-100+ scale)
+          // EPA breakpoints: 0-12 = Good, 12-35 = Moderate, 35-55 = Unhealthy for Sensitive
+          if (pm25) {
+            const value = pm25.value;
+            if (value <= 12) return Math.round(value * 4); // 0-48 (Good)
+            if (value <= 35) return Math.round(50 + (value - 12) * 2); // 50-96 (Moderate)
+            if (value <= 55) return Math.round(100 + (value - 35)); // 100-120 (Unhealthy for Sensitive)
+            return Math.min(Math.round(value * 2), 300); // Scale up for worse conditions
+          }
+
+          // Fallback to PM10 if PM2.5 not available
+          if (pm10) {
+            return Math.min(Math.round(pm10.value / 2), 200);
+          }
+        }
+
+        return 40; // Default fallback
+      } catch (e) {
+        console.warn('OpenAQ fetch failed, using default AQI:', e);
+        return 40; // Fallback to moderate value
       }
-
-      // Fallback to PM10 if PM2.5 not available
-      if (pm10) {
-        return Math.min(Math.round(pm10.value / 2), 200);
-      }
-    }
-
-    return 40; // Default fallback
-  } catch (e) {
-    console.warn('OpenAQ fetch failed, using default AQI:', e);
-    return 40; // Fallback to moderate value
-  }
+    },
+    60 // 1 Hour TTL
+  );
 };
 
 // --- DATA FETCHING (OPEN-METEO) ---
@@ -1529,68 +1538,80 @@ const NEWS_DATA: NewsItem[] = [
 // SINAN PROTOCOL V3: Smart Backfill Bridge
 // Always ensures 6 articles by mixing city-specific + general news
 export const fetchLiveArticles = async (cityName?: string): Promise<NewsItem[]> => {
-  const ANALYSIS_CATEGORY_ID = 21; // Your ID
-  const baseEndpoint = `/wp-json/wp/v2/posts?_embed&per_page=6&categories=${ANALYSIS_CATEGORY_ID}`;
+  // Use Cache Wrapper: 30 Minutes TTL (News updates less frequently)
+  const cacheKey = `news_v2_${toSlug(cityName || 'general')}`;
 
-  try {
-    let specificPosts: any[] = [];
-    let generalPosts: any[] = [];
+  return fetchWithCache(
+    cacheKey,
+    async () => {
+      const ANALYSIS_CATEGORY_ID = 21; // Your ID
+      const baseEndpoint = `/wp-json/wp/v2/posts?_embed&per_page=6&categories=${ANALYSIS_CATEGORY_ID}`;
 
-    // 1. FETCH SPECIFIC (If city provided)
-    if (cityName) {
       try {
-        const tagSlug = toSlug(cityName);
-        const tagRes = await fetch(`/wp-json/wp/v2/tags?slug=${tagSlug}`);
-        const tags = await tagRes.json();
+        let specificPosts: any[] = [];
+        let generalPosts: any[] = [];
 
-        if (Array.isArray(tags) && tags.length > 0) {
-          const tagId = tags[0].id;
-          // Fetch up to 3 specific posts
-          const specificRes = await fetch(`${baseEndpoint}&tags=${tagId}&per_page=3`);
-          if (specificRes.ok) {
-            specificPosts = await specificRes.json();
+        // 1. FETCH SPECIFIC (If city provided)
+        if (cityName) {
+          try {
+            const tagSlug = toSlug(cityName);
+            const tagRes = await fetch(`/wp-json/wp/v2/tags?slug=${tagSlug}`);
+            const tags = await tagRes.json();
+
+            if (Array.isArray(tags) && tags.length > 0) {
+              const tagId = tags[0].id;
+              // Fetch up to 3 specific posts
+              const specificRes = await fetch(`${baseEndpoint}&tags=${tagId}&per_page=3`);
+              if (specificRes.ok) {
+                specificPosts = await specificRes.json();
+              }
+            }
+          } catch (err) { /* Ignore tag errors */ }
+        }
+
+        // 2. FETCH GENERAL (Always fetch to fill gaps)
+        // We exclude the specific posts IDs to avoid duplicates
+        let excludeParams = "";
+        if (specificPosts.length > 0) {
+          const excludeIds = specificPosts.map((p: any) => p.id).join(',');
+          excludeParams = `&exclude=${excludeIds}`;
+        }
+
+        // Fetch enough to fill the remaining slots (Target: 6 total)
+        const needed = 6 - specificPosts.length;
+        if (needed > 0) {
+          const generalRes = await fetch(`${baseEndpoint}${excludeParams}&per_page=${needed}`);
+          if (generalRes.ok) {
+            generalPosts = await generalRes.json();
           }
         }
-      } catch (err) { /* Ignore tag errors */ }
-    }
 
-    // 2. FETCH GENERAL (Always fetch to fill gaps)
-    // We exclude the specific posts IDs to avoid duplicates
-    let excludeParams = "";
-    if (specificPosts.length > 0) {
-      const excludeIds = specificPosts.map((p: any) => p.id).join(',');
-      excludeParams = `&exclude=${excludeIds}`;
-    }
+        // 3. MERGE
+        const allPosts = [...specificPosts, ...generalPosts];
 
-    // Fetch enough to fill the remaining slots (Target: 6 total)
-    const needed = 6 - specificPosts.length;
-    if (needed > 0) {
-      const generalRes = await fetch(`${baseEndpoint}${excludeParams}&per_page=${needed}`);
-      if (generalRes.ok) {
-        generalPosts = await generalRes.json();
+        // 4. MAP
+        const newsItems = allPosts.map((post: any) => ({
+          id: post.id,
+          title: decodeHTMLEntities(post.title.rendered),
+          link: post.link,
+          image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/400/300?random=${post.id}`,
+          category: 'Hava Durumu Makalesi',
+          date: new Date(post.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+          excerpt: post.excerpt?.rendered
+            ? decodeHTMLEntities(post.excerpt.rendered.replace(/(<([^>]+)>)/gi, "")).substring(0, 100) + "..."
+            : ""
+        }));
+
+        console.log(`[News] Fresh fetch for ${cityName || 'General'} (${newsItems.length} items)`);
+        return newsItems;
+
+      } catch (e) {
+        console.warn("[Sinan Bridge] Failed:", e);
+        return NEWS_DATA;
       }
-    }
-
-    // 3. MERGE
-    const allPosts = [...specificPosts, ...generalPosts];
-
-    // 4. MAP
-    return allPosts.map((post: any) => ({
-      id: post.id,
-      title: decodeHTMLEntities(post.title.rendered),
-      link: post.link,
-      image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/400/300?random=${post.id}`,
-      category: 'Hava Durumu Makalesi',
-      date: new Date(post.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
-      excerpt: post.excerpt?.rendered
-        ? decodeHTMLEntities(post.excerpt.rendered.replace(/(<([^>]+)>)/gi, "")).substring(0, 100) + "..."
-        : ""
-    }));
-
-  } catch (e) {
-    console.warn("[Sinan Bridge] Failed:", e);
-    return NEWS_DATA;
-  }
+    },
+    30 // 30 Min TTL
+  );
 };
 
 export const fetchLegalPage = async (slug: string): Promise<LegalContent | null> => {

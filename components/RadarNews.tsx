@@ -23,7 +23,8 @@ const RadarNews: React.FC<RadarNewsProps> = ({ articles, weatherData, compact = 
   // Windy Embed URL Construction
   // zoom=5 for country view, zoom=8 for city view
   const zoom = weatherData ? 8 : 5;
-  const embedUrl = `https://embed.windy.com/embed2.html?lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&width=650&height=450&zoom=${zoom}&level=surface&overlay=satellite&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`;
+  // FIXED: overlay=radar for live rain radar, product=ecmwf (standard base model)
+  const embedUrl = `https://embed.windy.com/embed2.html?lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&width=650&height=450&zoom=${zoom}&level=surface&overlay=radar&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`;
 
   // Compact mode: radar only (for side-by-side with LifestyleRail)
   if (compact) {
