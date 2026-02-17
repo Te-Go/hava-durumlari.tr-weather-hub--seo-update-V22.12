@@ -143,6 +143,18 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
 
+      // TOP LEVEL ROUTE EXCEPTIONS (Before /hava-durumu/ checks)
+      if (path === '/deniz-suyu-sicakligi' || path === '/deniz-suyu-sicakligi/') {
+        return { city: 'İstanbul', view: 'sea-temp' };
+      }
+
+      if (path === '/15-gunluk' || path === '/15-gunluk/') {
+        // Retrieve last city or default to Istanbul
+        const prefs = getUserPreferences();
+        const city = prefs.lastCity || 'İstanbul';
+        return { city, view: '15-days' };
+      }
+
       // A. Strict Prefix Check (The Silo Protocol)
       if (path.startsWith('/hava-durumu/')) {
         const segments = path.split('/');
