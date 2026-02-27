@@ -115,7 +115,7 @@ const RESERVED_PATHS = [
 const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
   // BULLETPROOF HYDRATION LOGIC
-  const getInitialState = (): { city: string; view: 'home' | 'tomorrow' | '15-days'; parentCity?: string } => {
+  const getInitialState = (): { city: string; view: ViewState['type']; parentCity?: string } => {
 
     // ⛔️ PRIORITY 1: Server Injection (The "Truth")
     // If PHP (Asset Loader) injected the data object, use it.

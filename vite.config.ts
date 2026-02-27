@@ -34,7 +34,13 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       sourcemap: false, // Disable source maps for production to save space
-      minify: 'terser', // Use Terser for better minification
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
       manifest: true, // Enable manifest for PHP integration
       rollupOptions: {
         output: {
@@ -55,10 +61,7 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-    },
+
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
