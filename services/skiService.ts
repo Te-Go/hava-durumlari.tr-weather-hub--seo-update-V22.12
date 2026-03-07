@@ -102,6 +102,19 @@ export const SKI_RESORTS: Record<string, SkiResortInfo> = {
     }
 };
 
+// Reverse lookup: Resort name slugs → city keys
+// Allows hasSkiResort() and resolveSkiCityKey() to work with resort names too
+const RESORT_TO_CITY: Record<string, string> = {
+    'erciyes': 'kayseri',
+    'uludag': 'bursa',
+    'palandoken': 'erzurum',
+    'kartalkaya': 'bolu',
+    'sarikamis': 'kars',
+    'ilgaz': 'kastamonu',
+    'saklikent': 'antalya',
+    'davraz': 'isparta',
+};
+
 /**
  * Calculate ski conditions from weather data
  */
@@ -313,16 +326,31 @@ function generateSkiNarrative(
     return narrative;
 }
 
-/**
- * Check if city has ski resort
- */
-export function hasSkiResort(city: string): boolean {
-    const cityKey = city.toLowerCase()
+// Normalize Turkish characters for key lookup
+function normalizeSkiKey(str: string): string {
+    return str.toLowerCase()
         .replace(/ı/g, 'i')
         .replace(/ş/g, 's')
         .replace(/ğ/g, 'g')
         .replace(/ü/g, 'u')
         .replace(/ö/g, 'o')
         .replace(/ç/g, 'c');
-    return cityKey in SKI_RESORTS;
+}
+
+/**
+ * Check if city (or resort name) has a ski resort
+ */
+export function hasSkiResort(city: string): boolean {
+    const cityKey = normalizeSkiKey(city);
+    return cityKey in SKI_RESORTS || cityKey in RESORT_TO_CITY;
+}
+
+/**
+ * Resolve a resort name slug (e.g. 'erciyes') to its city key (e.g. 'kayseri')
+ * If already a city key, returns it as-is.
+ */
+export function resolveSkiCityKey(city: string): string {
+    const cityKey = normalizeSkiKey(city);
+    if (cityKey in SKI_RESORTS) return cityKey;
+    return RESORT_TO_CITY[cityKey] || cityKey;
 }

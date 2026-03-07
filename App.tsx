@@ -39,7 +39,7 @@ import { Icon } from './components/Icons';
 import { IslandPanel } from './islands';
 import { fetchMarineData, isCoastalCity, type MarineData } from './services/marineService';
 import { fetchTrafficData, hasTrafficMonitoring, type TomTomTrafficData } from './services/tomtomTrafficService';
-import { calculateSkiConditions, hasSkiResort, type SkiData } from './services/skiService';
+import { calculateSkiConditions, hasSkiResort, resolveSkiCityKey, type SkiData } from './services/skiService';
 import { findNearestHub } from './services/locationUtils'; // Hub & Spoke Logic
 
 // New Island Services
@@ -601,8 +601,9 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
 
             // 4. Ski (Mountain)
             if (hasSkiResort(citySlug)) {
+              const skiCityKey = resolveSkiCityKey(citySlug);
               import('./services/weatherUnlockedSkiService').then(({ fetchWeatherUnlockedSki }) => {
-                fetchWeatherUnlockedSki(citySlug).then(data => {
+                fetchWeatherUnlockedSki(skiCityKey).then(data => {
                   if (isMounted && data) setSkiData(data);
                 }).catch(err => console.error("Ski Fetch Error", err));
               });
