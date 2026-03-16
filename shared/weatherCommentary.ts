@@ -462,9 +462,11 @@ const generateHissedilenCommentary = (
         status = 'Daha Soğuk';
         statusColor = 'blue';
         if (timeframe === 'today') {
+            const windSpeed = data.windSpeed;
+            const windDesc = windSpeed < 20 ? 'Hafif rüzgar' : (windSpeed < 40 ? 'Rüzgar' : 'Sert rüzgar');
             const templates = [
                 `Hissedilen ${feels}°, gerçek ${actual}°. Rüzgar nedeniyle daha soğuk.`,
-                `Rüzgar sert. ${feels}° hissediliyor, termometre ${actual}° gösterse de.`
+                `${windDesc} etkili. ${feels}° hissediliyor, termometre ${actual}° gösterse de.`
             ];
             description = selectTemplate(templates, city, dayOfYear);
         } else if (timeframe === 'tomorrow') {

@@ -268,6 +268,32 @@ const App: React.FC<AppProps> = ({ locationId = 0 }) => {
     return false;
   });
 
+  // ============================================================================
+  // TEST MODE: Inject Mock Forecast Data for Accuracy Banner
+  // ============================================================================
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('test_accuracy') === 'true') {
+        const today = new Date().toISOString().split('T')[0];
+        const normalizedCity = currentCity.toLowerCase()
+          .replace(/İ/gi, 'i').replace(/ı/g, 'i').replace(/ğ/g, 'g')
+          .replace(/ş/g, 's').replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c');
+        const fakeForecast = {
+            city: currentCity,
+            date: today,
+            forecastHigh: 5,
+            forecastLow: 0,
+            forecastRainProb: 0,
+            forecastCondition: "Sunny",
+            storedAt: new Date().toISOString()
+        };
+        localStorage.setItem(`weather_forecast_${normalizedCity}_${today}`, JSON.stringify(fakeForecast));
+        console.log('[TEST] Injected mock accuracy data for', currentCity);
+      }
+    }
+  }, [currentCity]);
+
   // CONSENT & PREFERENCE LISTENER
   useEffect(() => {
     // 1. Load Consent & Analytics

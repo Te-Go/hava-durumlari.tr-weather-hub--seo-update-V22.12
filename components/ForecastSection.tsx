@@ -397,7 +397,7 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
                     </div>
                     {/* Column 4: Rain Probability - Highlighted */}
                     <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 px-3 py-1.5 rounded-lg min-w-[60px] justify-center text-xs font-bold text-blue-700 dark:text-blue-300 shadow-sm">
-                      <Icon.Droplets size={14} className="mr-1.5" />{day.rainProb}%
+                      <Icon.Droplets size={14} className="mr-1.5" />{day.rainProb !== undefined ? `${day.rainProb}%` : '0%'}
                     </div>
                     {/* Column 5: Wind - Enhanced */}
                     <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-700/60 px-2 py-1.5 rounded-lg min-w-[60px] justify-center text-xs font-semibold text-slate-600 dark:text-slate-300">
@@ -454,7 +454,7 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({ data, focusTomorrow =
                       {day.description || getWeatherDescription(day.icon)}
                     </div>
                     <div className="flex items-center justify-center min-w-[55px] text-xs text-slate-500">
-                      {day.rainProb > 0 && <><Icon.Droplets size={12} className="mr-1 text-blue-400" />{day.rainProb}%</>}
+                      {day.rainProb !== undefined ? <><Icon.Droplets size={12} className="mr-1 text-blue-400" />{day.rainProb}%</> : <span className="text-slate-300">-</span>}
                     </div>
                     <div className="hidden sm:flex items-center justify-center min-w-[55px] text-xs text-slate-400">
                       <Icon.Wind size={12} className="mr-1 text-slate-300" />{day.wind.split(' ')[0]}
